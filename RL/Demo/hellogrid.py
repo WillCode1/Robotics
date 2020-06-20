@@ -29,8 +29,8 @@ class HelloGridEnv(discrete.DiscreteEnv):
         nS = np.prod(self.desc.shape)
 
         # 设置最大的行号和最大的列号方便索引
-        MAX_Y = self.shape[0]
-        MAX_X = self.shape[1]
+        MAX_Y = desc.shape[0]
+        MAX_X = desc.shape[1]
 
         # 初始化状态分布[1. 0. 0. ...], 并从格子S开始执行
         isd = np.array(desc == b'S').astype('float64').ravel()
@@ -116,6 +116,7 @@ class HelloGridEnv(discrete.DiscreteEnv):
 
         if mode != 'human':
             return outfile
+        print('')
 
 
 desc = np.asarray(MAPS["4x4"], dtype='c')
