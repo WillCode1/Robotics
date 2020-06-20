@@ -86,7 +86,6 @@ class HelloGridEnv(discrete.DiscreteEnv):
             # 准备更新下一个状态
             it.iternext()
 
-        self.P = P
         discrete.DiscreteEnv.__init__(self, nS, nA, P, isd)
 
     def render(self, mode='human', close=False):
