@@ -3,8 +3,6 @@
     1. 速度的多样性
     2. action的多样性
     3. 输入应该不只是image
-
-    几个模型的对应
 """
 
 import glob
@@ -21,7 +19,6 @@ from tensorflow import keras
 from tensorflow.keras import backend
 from tensorflow.keras.applications.xception import Xception
 from tensorflow.keras.optimizers import Adam
-from threading import Thread
 from tqdm import tqdm
 
 try:
@@ -170,8 +167,8 @@ class DQNAgent:
         self.replay_memory = deque(maxlen=deque_maxlen)
         self.target_update_counter = 0
 
-    def training_step(self, batch_size=32):
-        if len(self.replay_memory) < batch_size:
+    def training_step(self, min_replay_memory_size=1000, batch_size=32, soft_update=False):
+        if len(self.replay_memory) < min_replay_memory_size:
             return
 
         batch_experiences = random.sample(self.replay_memory, batch_size)
@@ -192,19 +189,18 @@ class DQNAgent:
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
 
-        # 更新目标模型
         self.target_update_counter += 1
         if self.target_update_counter > self.update_frequency:
-            self.target_model.set_weights(self.model.get_weights())
-            self.target_update_counter = 0
-
-        # Alternatively, you can do soft updates at each step:
-        # if episode > 50:
-        # target_weights = target.get_weights()
-        # online_weights = model.get_weights()
-        # for index in range(len(target_weights)):
-        #    target_weights[index] = 0.99 * target_weights[index] + 0.01 * online_weights[index]
-        # target.set_weights(target_weights)
+            # 更新目标模型
+            if not soft_update:
+                self.target_model.set_weights(self.model.get_weights())
+                self.target_update_counter = 0
+            else:   # 软更新方式
+                target_weights = self.target_model.get_weights()
+                online_weights = model.get_weights()
+                for index in range(len(target_weights)):
+                    target_weights[index] = 0.99 * target_weights[index] + 0.01 * online_weights[index]
+                self.target_model.set_weights(target_weights)
 
     def epsilon_greedy_policy(self, state, epsilon=0):
         if np.random.rand() < epsilon:
@@ -233,7 +229,7 @@ if __name__ == "__main__":
     output = keras.layers.Dense(3)(x)
     model = keras.Model(inputs=[base_model.input], outputs=[output])
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_camera=True, run_seconds_per_episode=100)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_camera=False, run_seconds_per_episode=100)
 
     EPISODES = 601
     best_score = -np.inf
@@ -274,4 +270,4 @@ if __name__ == "__main__":
             total_rewards_list = []
 
         print("Episode: {}, epsilon: {:.3f}".format(episode, epsilon))
-        agent.training_step(batch_size=32)
+        agent.training_step(batch_size=4)
