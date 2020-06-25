@@ -74,7 +74,7 @@ class CarEnv:
         if self.show_camera:
             cv2.namedWindow('camera_image', cv2.WINDOW_AUTOSIZE)
             cv2.imshow("camera_image", img)
-            cv2.waitKey(30)
+            cv2.waitKey(15)
         self.front_camera = img
 
     def collision_data(self, event):
