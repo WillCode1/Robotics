@@ -224,7 +224,7 @@ if __name__ == "__main__":
     IM_WIDTH = 800
     IM_HEIGHT = 600
     action_num = 4
-    batch_size = 4
+    batch_size = 4  # ??
 
     # base_model = Xception(weights=None, include_top=False, input_shape=(IM_HEIGHT, IM_WIDTH, 3))
     # x = base_model.output
@@ -243,10 +243,10 @@ if __name__ == "__main__":
         # keras.layers.Flatten(),
         keras.layers.Dense(action_num)
     ])
-    print(model.summary())
+    # print(model.summary())
 
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_camera=False, run_seconds_per_episode=100)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_camera=False, run_seconds_per_episode=20)
 
     EPISODES = 601
     best_score = -np.inf
@@ -258,7 +258,7 @@ if __name__ == "__main__":
         done = False
 
         while True:
-            epsilon = max(1 - episode / 500, 0.01)
+            epsilon = max(1 - episode / 500, 0.05)
             action = agent.epsilon_greedy_policy(state / 255, epsilon)
             new_state, reward, done, _ = env.step(action)
             agent.replay_memory.append((state, action, reward, new_state, done))
@@ -272,7 +272,7 @@ if __name__ == "__main__":
             actor.destroy()
 
         total_rewards_list.append(episode_reward)
-        if episode % 20 == 0:
+        if episode % 10 == 0:
             average_reward = sum(total_rewards_list) / len(total_rewards_list)
 
             if average_reward > best_score:
