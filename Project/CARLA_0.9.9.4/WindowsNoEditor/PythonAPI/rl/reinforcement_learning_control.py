@@ -65,17 +65,25 @@ class CarEnv:
         self.world = self.client.get_world()
         self.blueprint_library = self.world.get_blueprint_library()
         self.model_3 = self.blueprint_library.filter("model3")[0]
-        self.front_camera = None
+        self.image_sensor_input = None
 
-    def process_img(self, image):
+    def rgb_camera_callback(self, image):
         # RGBA
         img = np.array(image.raw_data).reshape((self.img_height, self.img_width, 4))
         img = img[:, :, :3]
         if self.show_camera:
-            cv2.namedWindow('camera_image', cv2.WINDOW_AUTOSIZE)
-            cv2.imshow("camera_image", img)
+            cv2.namedWindow('rgb_camera', cv2.WINDOW_AUTOSIZE)
+            cv2.imshow("rgb_camera", img)
             cv2.waitKey(15)
-        self.front_camera = img
+
+    def sem_camera_callback(self, image):
+        img = np.array(image.raw_data).reshape((self.img_height, self.img_width, 4))
+        img = img[:, :, :3]
+        if self.show_camera:
+            cv2.namedWindow('semantic_segmentation', cv2.WINDOW_AUTOSIZE)
+            cv2.imshow("semantic_segmentation", img)
+            cv2.waitKey(15)
+        self.image_sensor_input = img
 
     def collision_data(self, event):
         self.collision_hist.append(event)
@@ -96,25 +104,38 @@ class CarEnv:
                 self.transform = random.choice(self.world.get_map().get_spawn_points())
                 self.vehicle = self.world.spawn_actor(self.model_3, self.transform)
             except RuntimeError:
-                print("spawn_actor at collision.")
+                # print("spawn_actor at collision.")
                 loop = True
 
-        """
-        RGB相机、深度相机、LIDAR光线投射传感器
-        """
         self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
         self.actor_list.append(self.vehicle)
 
-        self.sem_camera = self.blueprint_library.find("sensor.camera.semantic_segmentation")
-        self.sem_camera.set_attribute("image_size_x", f"{self.img_width}")
-        self.sem_camera.set_attribute("image_size_y", f"{self.img_height}")
-        self.sem_camera.set_attribute("fov", "110")
+        """
+        深度相机、LIDAR光线投射传感器
+        """
+        # 初始化RGB相机
+        rgb_camera = self.blueprint_library.find("sensor.camera.rgb")
+        rgb_camera.set_attribute("image_size_x", f"{self.img_width}")
+        rgb_camera.set_attribute("image_size_y", f"{self.img_height}")
+        rgb_camera.set_attribute("fov", "110")
 
         transform = carla.Transform(carla.Location(x=2, y=0, z=1))
-        self.sensor = self.world.spawn_actor(self.sem_camera, transform, attach_to=self.vehicle,
-                                             attachment_type=carla.AttachmentType.SpringArm)
-        self.actor_list.append(self.sensor)
-        self.sensor.listen(lambda data: self.process_img(data))
+        rgb_camera = self.world.spawn_actor(rgb_camera, transform, attach_to=self.vehicle,
+                                            attachment_type=carla.AttachmentType.SpringArm)
+        rgb_camera.listen(lambda data: self.rgb_camera_callback(data))
+        self.actor_list.append(rgb_camera)
+
+        # 初始化语义分割相机
+        sem_camera = self.blueprint_library.find("sensor.camera.semantic_segmentation")
+        sem_camera.set_attribute("image_size_x", f"{self.img_width}")
+        sem_camera.set_attribute("image_size_y", f"{self.img_height}")
+        sem_camera.set_attribute("fov", "110")
+
+        transform = carla.Transform(carla.Location(x=2, y=0, z=1))
+        sem_camera = self.world.spawn_actor(sem_camera, transform, attach_to=self.vehicle,
+                                            attachment_type=carla.AttachmentType.SpringArm)
+        sem_camera.listen(lambda data: self.sem_camera_callback(data))
+        self.actor_list.append(sem_camera)
 
         """
         # 获取加速度、角速度
@@ -149,15 +170,15 @@ class CarEnv:
 
         # 碰撞检测
         collision_sensor = self.blueprint_library.find("sensor.other.collision")
-        self.collision_sensor = self.world.spawn_actor(collision_sensor, transform, attach_to=self.vehicle)
-        self.actor_list.append(self.collision_sensor)
-        self.collision_sensor.listen(lambda event: self.collision_data(event))
+        collision_sensor = self.world.spawn_actor(collision_sensor, transform, attach_to=self.vehicle)
+        collision_sensor.listen(lambda event: self.collision_data(event))
+        self.actor_list.append(collision_sensor)
 
-        while self.front_camera is None:
-            time.sleep(0.1)
+        while self.image_sensor_input is None:
+            time.sleep(0.01)
 
         self.episode_start = time.time()
-        return self.front_camera
+        return self.image_sensor_input
 
     def step(self, action):
         if action == 0:
@@ -181,9 +202,7 @@ class CarEnv:
         else:
             done = False
 
-            if kmh == 0:
-                reward = 1
-            elif 0 <= kmh < 20:
+            if 0 <= kmh < 20:
                 reward = -5
             elif 20 <= kmh < 40:
                 reward = 0
@@ -197,7 +216,7 @@ class CarEnv:
         if self.episode_start + self.run_seconds_per_episode < time.time():
             done = True
 
-        return self.front_camera, reward, done, None
+        return self.image_sensor_input, reward, done, None
 
 
 class DQNAgent:
