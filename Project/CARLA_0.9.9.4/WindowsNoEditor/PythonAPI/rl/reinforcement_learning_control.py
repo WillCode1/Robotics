@@ -99,19 +99,53 @@ class CarEnv:
                 print("spawn_actor at collision.")
                 loop = True
 
+        """
+        RGB相机、深度相机、LIDAR光线投射传感器
+        """
+        self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
         self.actor_list.append(self.vehicle)
 
-        self.rgb_camera = self.blueprint_library.find("sensor.camera.rgb")
-        self.rgb_camera.set_attribute("image_size_x", f"{self.img_width}")
-        self.rgb_camera.set_attribute("image_size_y", f"{self.img_height}")
-        self.rgb_camera.set_attribute("fov", "110")
+        self.sem_camera = self.blueprint_library.find("sensor.camera.semantic_segmentation")
+        self.sem_camera.set_attribute("image_size_x", f"{self.img_width}")
+        self.sem_camera.set_attribute("image_size_y", f"{self.img_height}")
+        self.sem_camera.set_attribute("fov", "110")
 
-        transform = carla.Transform(carla.Location(x=2.5, z=0.7))
-        self.sensor = self.world.spawn_actor(self.rgb_camera, transform, attach_to=self.vehicle)
+        transform = carla.Transform(carla.Location(x=2, y=0, z=1))
+        self.sensor = self.world.spawn_actor(self.sem_camera, transform, attach_to=self.vehicle,
+                                             attachment_type=carla.AttachmentType.SpringArm)
         self.actor_list.append(self.sensor)
         self.sensor.listen(lambda data: self.process_img(data))
 
-        self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
+        """
+        # 获取加速度、角速度
+        # Add IMU sensor to ego vehicle.
+        imu_bp = world.get_blueprint_library().find('sensor.other.imu')
+        imu_location = carla.Location(0, 0, 0)
+        imu_rotation = carla.Rotation(0, 0, 0)
+        imu_transform = carla.Transform(imu_location, imu_rotation)
+        imu_bp.set_attribute("sensor_tick", str(3.0))
+        ego_imu = world.spawn_actor(imu_bp, imu_transform, attach_to=ego_vehicle,
+                                    attachment_type=carla.AttachmentType.Rigid)
+
+        def imu_callback(imu):
+            print("IMU measure:\n" + str(imu) + '\n')
+
+        ego_imu.listen(lambda imu: imu_callback(imu))
+        """
+        """
+        # Add Lane invasion sensor to ego vehicle.
+        lane_bp = world.get_blueprint_library().find('sensor.other.lane_invasion')
+        lane_location = carla.Location(0, 0, 0)
+        lane_rotation = carla.Rotation(0, 0, 0)
+        lane_transform = carla.Transform(lane_location, lane_rotation)
+        ego_lane = world.spawn_actor(lane_bp, lane_transform, attach_to=ego_vehicle,
+                                     attachment_type=carla.AttachmentType.Rigid)
+
+        def lane_callback(lane):
+            print("Lane invasion detected:\n" + str(lane) + '\n')
+
+        ego_lane.listen(lambda lane: lane_callback(lane))
+        """
 
         # 碰撞检测
         collision_sensor = self.blueprint_library.find("sensor.other.collision")
@@ -146,7 +180,19 @@ class CarEnv:
             reward = -1
         else:
             done = False
-            reward = 1
+
+            if kmh == 0:
+                reward = 1
+            elif 0 <= kmh < 20:
+                reward = -5
+            elif 20 <= kmh < 40:
+                reward = 0
+            elif 40 <= kmh < 60:
+                reward = 5
+            elif 60 <= kmh < 70:
+                reward = 1
+            else:
+                reward = -20
 
         if self.episode_start + self.run_seconds_per_episode < time.time():
             done = True
@@ -176,15 +222,15 @@ class DQNAgent:
         states, actions, rewards, next_states, dones = [
             np.array([experience[field_index] for experience in batch_experiences])
             for field_index in range(5)]
-        next_Q_values = self.model.predict(next_states / 255)
+        next_Q_values = self.model.predict(next_states)
         best_next_actions = np.argmax(next_Q_values, axis=1)
         next_mask = tf.one_hot(best_next_actions, self.model.output.shape[1]).numpy()
-        next_best_Q_values = (self.target_model.predict(next_states / 255) * next_mask).sum(axis=1)
+        next_best_Q_values = (self.target_model.predict(next_states) * next_mask).sum(axis=1)
         target_Q_values = (rewards + (1 - dones) * self.discount_rate * next_best_Q_values)
         target_Q_values = target_Q_values.reshape(-1, 1)
         mask = tf.one_hot(actions, self.model.output.shape[1])
         with tf.GradientTape() as tape:
-            all_Q_values = self.model(states / 255)
+            all_Q_values = self.model(states)
             Q_values = tf.reduce_sum(all_Q_values * mask, axis=1, keepdims=True)
             loss = tf.reduce_mean(self.loss_fn(target_Q_values, Q_values))
         grads = tape.gradient(loss, self.model.trainable_variables)
@@ -233,6 +279,7 @@ if __name__ == "__main__":
     # model = keras.Model(inputs=[base_model.input], outputs=[output])
 
     model = keras.models.Sequential([
+        keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255),
         keras.layers.Conv2D(64, 7, activation="relu", padding="same", input_shape=(IM_HEIGHT, IM_WIDTH, 3)),
         keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same'),
         keras.layers.Conv2D(64, 3, activation="relu", padding="same"),
@@ -244,6 +291,7 @@ if __name__ == "__main__":
         keras.layers.Dense(action_num)
     ])
     # print(model.summary())
+    model.load_weights(f'models/{MODEL_NAME}.h5')
 
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_camera=False, run_seconds_per_episode=20)
