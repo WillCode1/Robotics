@@ -84,17 +84,16 @@ class CarEnv:
         self.collision_hist = []
         self.actor_list = []
 
-        self.transform = random.choice(self.world.get_map().get_spawn_points())
+        random.seed(42)
+        np.random.seed(42)
+        tf.random.set_seed(42)
 
         # 解决出现在障碍物处问题
         loop = True
         while loop:
             loop = False
-            random_seed = random.randint(1, 100)
-            random.seed(random_seed)
-            np.random.seed(random_seed)
-            tf.random.set_seed(random_seed)
             try:
+                self.transform = random.choice(self.world.get_map().get_spawn_points())
                 self.vehicle = self.world.spawn_actor(self.model_3, self.transform)
             except RuntimeError:
                 print("spawn_actor at collision.")
@@ -133,6 +132,8 @@ class CarEnv:
             self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=0))
         elif action == 2:
             self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=1))
+        elif action == 3:
+            self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
 
         v = self.vehicle.get_velocity()
         kmh = int(3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2))
@@ -220,14 +221,30 @@ if __name__ == "__main__":
     if not os.path.isdir("./models"):
         os.makedirs("./models")
 
-    IM_WIDTH = 640
-    IM_HEIGHT = 640
+    IM_WIDTH = 800
+    IM_HEIGHT = 600
+    action_num = 4
+    batch_size = 4
 
-    base_model = Xception(weights=None, include_top=False, input_shape=(IM_HEIGHT, IM_WIDTH, 3))
-    x = base_model.output
-    x = keras.layers.GlobalAvgPool2D()(x)
-    output = keras.layers.Dense(3)(x)
-    model = keras.Model(inputs=[base_model.input], outputs=[output])
+    # base_model = Xception(weights=None, include_top=False, input_shape=(IM_HEIGHT, IM_WIDTH, 3))
+    # x = base_model.output
+    # x = keras.layers.GlobalAvgPool2D()(x)
+    # output = keras.layers.Dense(action_num)(x)
+    # model = keras.Model(inputs=[base_model.input], outputs=[output])
+
+    model = keras.models.Sequential([
+        keras.layers.Conv2D(64, 7, activation="relu", padding="same", input_shape=(IM_HEIGHT, IM_WIDTH, 3)),
+        keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same'),
+        keras.layers.Conv2D(64, 3, activation="relu", padding="same"),
+        keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same'),
+        keras.layers.Conv2D(64, 3, activation="relu", padding="same"),
+        # keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same'),
+        keras.layers.GlobalAvgPool2D(),
+        # keras.layers.Flatten(),
+        keras.layers.Dense(action_num)
+    ])
+    print(model.summary())
+
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_camera=False, run_seconds_per_episode=100)
 
@@ -268,6 +285,6 @@ if __name__ == "__main__":
                       f"__{min_reward:_>7.2f}min__{int(time.time())}")
 
             total_rewards_list = []
+            print("Episode: {}, epsilon: {:.3f}".format(episode, epsilon))
 
-        print("Episode: {}, epsilon: {:.3f}".format(episode, epsilon))
-        agent.training_step(batch_size=4)
+        agent.training_step(batch_size=batch_size)
