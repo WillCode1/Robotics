@@ -143,8 +143,8 @@ class CarEnv:
         self.lane_invasion = lane.crossed_lane_markings
 
     def imu_callback(self, imu):
-        self.acceleration = imu.accelerometer
-        self.angular_velocity = imu.gyroscope
+        self.acceleration = np.array([imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z])
+        self.angular_velocity = np.array([imu.gyroscope.x, imu.gyroscope.y, imu.gyroscope.z])
 
     def reset(self):
         self.clear_env()
@@ -239,20 +239,11 @@ class CarEnv:
             reward = -1
         else:
             done = False
-
-            if 0 <= kmh < 20:
-                reward = -5
-            elif 20 <= kmh < 40:
-                reward = 0
-            elif 40 <= kmh < 60:
-                reward = 5
-            elif 60 <= kmh < 70:
-                reward = 1
-            else:
-                reward = -20
+            reward = 1
 
         if len(self.lane_invasion) != 0:
-            reward -= 20
+            reward -= 80
+        self.lane_invasion = []
 
         if self.episode_start + self.run_seconds_per_episode < time.time():
             done = True
@@ -281,10 +272,17 @@ class DQNAgent:
             return
 
         batch_experiences = random.sample(self.replay_memory, batch_size)
-        states = batch_experiences[0]
-        states, actions, rewards, next_states, dones = [
-            np.array([experience[field_index] for experience in batch_experiences])
-            for field_index in range(5)]
+        states, next_states = [[experience[field_index] for experience in batch_experiences]
+                               for field_index in range(4) if field_index in [0, 3]]
+        actions, rewards, dones = [np.array([experience[field_index] for experience in batch_experiences])
+                                   for field_index in range(5) if field_index in [1, 2, 4]]
+        input1, input2, input3, input4 = [np.array([state[field_index] for state in states])
+                                          for field_index in range(4)]
+        states = (input1, input2, input3, input4)
+        input1, input2, input3, input4 = [np.array([next_state[field_index] for next_state in next_states])
+                                          for field_index in range(4)]
+        next_states = (input1, input2, input3, input4)
+
         next_Q_values = self.model.predict(next_states)
         best_next_actions = np.argmax(next_Q_values, axis=1)
         next_mask = tf.one_hot(best_next_actions, self.model.output.shape[1]).numpy()
@@ -316,7 +314,8 @@ class DQNAgent:
         if np.random.rand() < epsilon:
             return np.random.randint(self.model.output.shape[1])  # 动作个数
         else:
-            Q_values = self.model.predict(state[np.newaxis])
+            Q_values = self.model.predict((state[0][np.newaxis], state[1][np.newaxis],
+                                           state[2][np.newaxis], state[3][np.newaxis]))
             return np.argmax(Q_values[0])
 
 
