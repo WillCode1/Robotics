@@ -190,7 +190,7 @@ class CarEnv:
         """
         雷达传感器
         """
-        # Add IMU sensor to ego vehicle.
+        # Add IMU sensor to vehicle.
         imu_bp = self.blueprint_library.find('sensor.other.imu')
         # imu_bp.set_attribute("sensor_tick", str(3.0))
         imu = self.world.spawn_actor(imu_bp, other_transform, attach_to=self.vehicle,
@@ -198,7 +198,7 @@ class CarEnv:
         imu.listen(lambda imu: self.imu_callback(imu))
         self.actor_list.append(imu)
 
-        # Add Lane invasion sensor to ego vehicle.
+        # Add Lane invasion sensor to vehicle.
         lane_bp = self.blueprint_library.find('sensor.other.lane_invasion')
         lane_invasion = self.world.spawn_actor(lane_bp, other_transform, attach_to=self.vehicle,
                                                attachment_type=carla.AttachmentType.Rigid)
@@ -241,9 +241,14 @@ class CarEnv:
             done = False
             reward = 1
 
+        # 速度??
         if len(self.lane_invasion) != 0:
-            reward -= 80
-        self.lane_invasion = []
+            for lane in self.lane_invasion:
+                if lane.type == carla.LaneMarkingType.Solid:
+                    reward -= 50
+                elif lane.type == carla.LaneMarkingType.SolidSolid:
+                    reward -= 100
+            self.lane_invasion = []
 
         if self.episode_start + self.run_seconds_per_episode < time.time():
             done = True
