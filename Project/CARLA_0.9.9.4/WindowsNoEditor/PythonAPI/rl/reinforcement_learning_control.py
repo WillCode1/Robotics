@@ -320,17 +320,6 @@ class DQNAgent:
 
 
 def create_model(input_shape, action_num, include_velocity=True):
-    # model = keras.models.Sequential([
-    #     keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255, input_shape=(IM_HEIGHT, IM_WIDTH, 3)),
-    #     keras.layers.Conv2D(64, 7, activation="relu", padding="same"),
-    #     keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same'),
-    #     keras.layers.Conv2D(64, 3, activation="relu", padding="same"),
-    #     keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same'),
-    #     keras.layers.Conv2D(64, 3, activation="relu", padding="same"),
-    #     keras.layers.GlobalAvgPool2D(),
-    #     keras.layers.Dense(action_num)
-    # ])
-
     input_1 = keras.layers.Input(shape=input_shape, name="sem_camera_input")
     input_2 = keras.layers.Input(shape=input_shape, name="depth_camera_input")
     input_3 = keras.layers.Input(shape=[3], name="acceleration_input")
