@@ -1,8 +1,7 @@
 # reinforcement_learning_control.
 """
     1. 速度的多样性
-    2. action的多样性
-    3. 输入应该不只是image
+    2. 是否设置目标点
 """
 
 import glob
@@ -54,8 +53,12 @@ Instance Variables
 
 
 class CarEnv:
-    def __init__(self, img_height, img_width, show_camera=True, run_seconds_per_episode=100):
-        self.show_camera = show_camera
+    def __init__(self, img_height, img_width, show_rgb_camera=True, show_sem_camera=False,
+                 show_depth_camera=False, run_seconds_per_episode=None):
+        self.show_rgb_camera = show_rgb_camera
+        self.show_sem_camera = show_sem_camera
+        self.show_depth_camera = show_depth_camera
+
         self.img_width = img_width
         self.img_height = img_height
         self.run_seconds_per_episode = run_seconds_per_episode
@@ -119,7 +122,7 @@ class CarEnv:
         image.convert(carla.ColorConverter.CityScapesPalette)
         img = np.array(image.raw_data).reshape((self.img_height, self.img_width, 4))
         img = img[:, :, :3]
-        if self.show_camera:
+        if self.show_sem_camera:
             cv2.namedWindow('semantic_segmentation', cv2.WINDOW_AUTOSIZE)
             cv2.imshow("semantic_segmentation", img)
             cv2.waitKey(15)
@@ -130,7 +133,7 @@ class CarEnv:
         image.convert(carla.ColorConverter.LogarithmicDepth)
         img = np.array(image.raw_data).reshape((self.img_height, self.img_width, 4))
         img = img[:, :, :3]
-        if self.show_camera:
+        if self.show_depth_camera:
             cv2.namedWindow('depth_camera', cv2.WINDOW_AUTOSIZE)
             cv2.imshow("depth_camera", img)
             cv2.waitKey(15)
@@ -176,7 +179,7 @@ class CarEnv:
         self.actor_list.append(depth_camera)
 
         # RGB相机
-        if self.show_camera:
+        if self.show_rgb_camera:
             rgb_camera = self.blueprint_library.find("sensor.camera.rgb")
             rgb_camera.set_attribute("image_size_x", f"{self.img_width}")
             rgb_camera.set_attribute("image_size_y", f"{self.img_height}")
@@ -215,7 +218,8 @@ class CarEnv:
             time.sleep(0.01)
 
         self.episode_start = time.time()
-        return (self.sem_camera_input, self.depth_camera_input, self.acceleration, self.angular_velocity)
+        return (self.sem_camera_input, self.depth_camera_input,
+                self.acceleration, self.angular_velocity, np.array([0.0]))
         # return self.sem_camera_input
 
     def step(self, action):
@@ -227,34 +231,40 @@ class CarEnv:
             self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=1))
         elif action == 3:
             self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
+        elif action == 4:
+            self.vehicle.apply_control(carla.VehicleControl(throttle=0.0))
 
-        v = self.vehicle.get_velocity()
-        kmh = int(3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2))
+        velocity = self.vehicle.get_velocity()
+        velocity = math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+        kmh = 3.6 * velocity
 
         if len(self.collision_hist) != 0:
             done = True
-            reward = -200
-        elif kmh < 50:
+            reward = -10000
+        elif kmh <= 20:
             done = False
             reward = -1
         else:
             done = False
             reward = 1
 
-        # 速度??
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
                     reward -= 50
+                    # done = True
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
                     reward -= 100
+                    # done = True
+
             self.lane_invasion = []
 
-        if self.episode_start + self.run_seconds_per_episode < time.time():
-            done = True
+        if self.run_seconds_per_episode is not None:
+            if self.episode_start + self.run_seconds_per_episode < time.time():
+                done = True
 
-        return (self.sem_camera_input, self.depth_camera_input, self.acceleration, self.angular_velocity), \
-               reward, done, None
+        return (self.sem_camera_input, self.depth_camera_input,
+                self.acceleration, self.angular_velocity, np.array([velocity])), reward, done, None
         # return self.sem_camera_input, reward, done, None
 
 
@@ -281,12 +291,12 @@ class DQNAgent:
                                for field_index in range(4) if field_index in [0, 3]]
         actions, rewards, dones = [np.array([experience[field_index] for experience in batch_experiences])
                                    for field_index in range(5) if field_index in [1, 2, 4]]
-        input1, input2, input3, input4 = [np.array([state[field_index] for state in states])
-                                          for field_index in range(4)]
-        states = (input1, input2, input3, input4)
-        input1, input2, input3, input4 = [np.array([next_state[field_index] for next_state in next_states])
-                                          for field_index in range(4)]
-        next_states = (input1, input2, input3, input4)
+        input1, input2, input3, input4, input5 = [np.array([state[field_index] for state in states])
+                                                  for field_index in range(5)]
+        states = (input1, input2, input3, input4, input5)
+        input1, input2, input3, input4, input5 = [np.array([next_state[field_index] for next_state in next_states])
+                                                  for field_index in range(5)]
+        next_states = (input1, input2, input3, input4, input5)
 
         next_Q_values = self.model.predict(next_states)
         best_next_actions = np.argmax(next_Q_values, axis=1)
@@ -304,10 +314,10 @@ class DQNAgent:
 
         self.target_update_counter += 1
         if self.target_update_counter > self.update_frequency:
+            self.target_update_counter = 0
             # 更新目标模型
             if not soft_update:
                 self.target_model.set_weights(self.model.get_weights())
-                self.target_update_counter = 0
             else:  # 软更新方式
                 target_weights = self.target_model.get_weights()
                 online_weights = model.get_weights()
@@ -319,8 +329,8 @@ class DQNAgent:
         if np.random.rand() < epsilon:
             return np.random.randint(self.model.output.shape[1])  # 动作个数
         else:
-            Q_values = self.model.predict((state[0][np.newaxis], state[1][np.newaxis],
-                                           state[2][np.newaxis], state[3][np.newaxis]))
+            Q_values = self.model.predict((state[0][np.newaxis], state[1][np.newaxis], state[2][np.newaxis],
+                                           state[3][np.newaxis], state[4][np.newaxis]))
             return np.argmax(Q_values[0])
 
 
@@ -329,6 +339,7 @@ def create_model(input_shape, action_num, include_velocity=True):
     input_2 = keras.layers.Input(shape=input_shape, name="depth_camera_input")
     input_3 = keras.layers.Input(shape=[3], name="acceleration_input")
     input_4 = keras.layers.Input(shape=[3], name="angular_velocity_input")
+    input_5 = keras.layers.Input(shape=[1], name="velocity_input")
 
     x = keras.layers.concatenate([input_1, input_2])
     x = keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255)(x)
@@ -341,12 +352,13 @@ def create_model(input_shape, action_num, include_velocity=True):
     x = keras.layers.GlobalAvgPool2D()(x)
 
     if include_velocity:
-        x = keras.layers.concatenate([x, input_3, input_4])
-        x = keras.layers.Dense(20, activation="relu")(x)
+        x = keras.layers.concatenate([x, input_3, input_4, input_5])
+        x = keras.layers.Dense(30, activation="selu")(x)
+        x = keras.layers.Dense(10, activation="selu")(x)
 
     output = keras.layers.Dense(action_num)(x)
 
-    model = keras.Model(inputs=[input_1, input_2, input_3, input_4], outputs=[output])
+    model = keras.Model(inputs=[input_1, input_2, input_3, input_4, input_5], outputs=[output])
     return model
 
 
@@ -355,34 +367,36 @@ if __name__ == "__main__":
     # gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=MEMORY_FRACTION)
     # backend.set_session(tf.Session(config=tf.ConfigProto(gpu_option=gpu_options)))
 
-    MODEL_NAME = "Xception"
-
     if not os.path.isdir("./models"):
         os.makedirs("./models")
 
     IM_WIDTH = 800
     IM_HEIGHT = 600
-    action_num = 4
-    batch_size = 4  # ??
+    action_num = 5
+    batch_size = 8
+    run_seconds_per_episode = 50
 
     model = create_model(input_shape=(IM_HEIGHT, IM_WIDTH, 3), action_num=action_num)
     # print(model.summary())
-    # model.load_weights(f'models/{MODEL_NAME}.h5')
+    # model.load_weights(f'models/-5400.50avg_0.28epsilon_50s run_seconds.h5')
 
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_camera=False, run_seconds_per_episode=20)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_rgb_camera=True, run_seconds_per_episode=run_seconds_per_episode)
 
-    EPISODES = 601
+    EPISODES = 1000
     best_score = -np.inf
+    # best_score = -227
+    max_epsilon = 0.8
     total_rewards_list = []
 
-    for episode in tqdm(range(EPISODES), ascii=True, unit="episodes"):
+    for episode in tqdm(range(EPISODES+1), ascii=True, unit="episodes"):
         state = env.reset()
         episode_reward = 0
         done = False
 
         while True:
-            epsilon = max(1 - episode / 500, 0.05)
+            # epsilon = max(1 - episode / 500, 0.1)
+            epsilon = max(max_epsilon - episode / 500, 0.1)
             action = agent.epsilon_greedy_policy(state, epsilon)
             new_state, reward, done, _ = env.step(action)
             agent.replay_memory.append((state, action, reward, new_state, done))
@@ -401,11 +415,10 @@ if __name__ == "__main__":
                 min_reward = min(total_rewards_list)
                 max_reward = max(total_rewards_list)
 
-                agent.model.save(f'models/{MODEL_NAME}.h5')
-                print(f"Save model by {MODEL_NAME}__{average_reward:_>7.2f}avg__{max_reward:_>7.2f}max"
-                      f"__{min_reward:_>7.2f}min__{int(time.time())}")
+                agent.model.save(f'models/{average_reward:.2f}avg_{epsilon:.2f}epsilon'
+                                 f'_{run_seconds_per_episode}s run_seconds.h5')
+                print(f"Save model by {average_reward:_>7.2f}avg__{max_reward:_>7.2f}max__{min_reward:_>7.2f}min")
 
             total_rewards_list = []
-            print("Episode: {}, epsilon: {:.3f}".format(episode, epsilon))
 
         agent.training_step(batch_size=batch_size)
