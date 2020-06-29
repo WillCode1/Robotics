@@ -381,12 +381,12 @@ if __name__ == "__main__":
     # model.load_weights(f'models/-5400.50avg_0.28epsilon_50s run_seconds.h5')
 
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_rgb_camera=True, run_seconds_per_episode=run_seconds_per_episode)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_rgb_camera=False, run_seconds_per_episode=run_seconds_per_episode)
 
     EPISODES = 1000
     best_score = -np.inf
     # best_score = -227
-    max_epsilon = 0.8
+    max_epsilon = 0.5
     total_rewards_list = []
 
     for episode in tqdm(range(EPISODES+1), ascii=True, unit="episodes"):
@@ -395,7 +395,6 @@ if __name__ == "__main__":
         done = False
 
         while True:
-            # epsilon = max(1 - episode / 500, 0.1)
             epsilon = max(max_epsilon - episode / 500, 0.1)
             action = agent.epsilon_greedy_policy(state, epsilon)
             new_state, reward, done, _ = env.step(action)
