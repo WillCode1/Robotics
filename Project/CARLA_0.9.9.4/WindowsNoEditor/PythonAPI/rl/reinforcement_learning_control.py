@@ -220,7 +220,6 @@ class CarEnv:
         self.episode_start = time.time()
         return (self.sem_camera_input, self.depth_camera_input,
                 self.acceleration, self.angular_velocity, np.array([0.0]))
-        # return self.sem_camera_input
 
     def step(self, action):
         if action == 0:
@@ -265,7 +264,6 @@ class CarEnv:
 
         return (self.sem_camera_input, self.depth_camera_input,
                 self.acceleration, self.angular_velocity, np.array([velocity])), reward, done, None
-        # return self.sem_camera_input, reward, done, None
 
 
 class DQNAgent:
@@ -320,7 +318,7 @@ class DQNAgent:
                 self.target_model.set_weights(self.model.get_weights())
             else:  # 软更新方式
                 target_weights = self.target_model.get_weights()
-                online_weights = model.get_weights()
+                online_weights = self.model.get_weights()
                 for index in range(len(target_weights)):
                     target_weights[index] = 0.99 * target_weights[index] + 0.01 * online_weights[index]
                 self.target_model.set_weights(target_weights)
