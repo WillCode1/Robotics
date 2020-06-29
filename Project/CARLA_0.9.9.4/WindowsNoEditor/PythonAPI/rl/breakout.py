@@ -27,14 +27,16 @@ class DQNAgent:
         self.model = model
         self.target_model = keras.models.clone_model(self.model)
         self.target_model.set_weights(self.model.get_weights())
-        self.optimizer = Adam(lr=0.01)
+        # self.optimizer = Adam(lr=0.01)
+        self.optimizer = keras.optimizers.RMSprop(lr=2.5e-4, rho=0.95, momentum=0.0,
+                                                  epsilon=0.00001, centered=True)
         self.loss_fn = keras.losses.Huber()
 
         self.replay_memory = deque(maxlen=deque_maxlen)
         self.target_update_counter = 0
 
-    def training_step(self, min_replay_memory_size=1000, batch_size=32, soft_update=False):
-        if len(self.replay_memory) < min_replay_memory_size:
+    def training_step(self, batch_size=32, soft_update=False):
+        if len(self.replay_memory) < batch_size:
             return
 
         batch_experiences = random.sample(self.replay_memory, batch_size)
@@ -83,10 +85,8 @@ def create_model(input_shape, action_num):
 
     x = keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255)(input)
 
-    x = keras.layers.Conv2D(64, 7, activation="relu", padding="same")(x)
-    x = keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same')(x)
-    x = keras.layers.Conv2D(64, 3, activation="relu", padding="same")(x)
-    x = keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same')(x)
+    x = keras.layers.Conv2D(32, 8, strides=4, activation="relu", padding="same")(x)
+    x = keras.layers.Conv2D(64, 4, strides=2, activation="relu", padding="same")(x)
     x = keras.layers.Conv2D(64, 3, activation="relu", padding="same")(x)
     x = keras.layers.GlobalAvgPool2D()(x)
 
@@ -101,13 +101,13 @@ if __name__ == "__main__":
         os.makedirs("./models")
 
     action_num = env.action_space.n
-    batch_size = 8
+    batch_size = 256
 
     model = create_model(input_shape=env.observation_space.shape, action_num=action_num)
-    # print(model.summary())
+    print(model.summary())
     # model.load_weights(f'models/-5400.50avg_0.28epsilon_50s run_seconds.h5')
 
-    agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
+    agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=1000000)
 
     EPISODES = 1000
     best_score = -np.inf
@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
         while True:
             env.render()
-            epsilon = max(max_epsilon - episode / 500, 0.1)
+            epsilon = max(max_epsilon - episode / EPISODES, 0.01)
             action = agent.epsilon_greedy_policy(state, epsilon)
             new_state, reward, done, _ = env.step(action)
             agent.replay_memory.append((state, action, reward, new_state, done))
