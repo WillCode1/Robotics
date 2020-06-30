@@ -17,7 +17,6 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend
 from tensorflow.keras.applications.xception import Xception
-from tensorflow.keras.optimizers import Adam
 from tqdm import tqdm
 
 try:
@@ -239,22 +238,20 @@ class CarEnv:
 
         if len(self.collision_hist) != 0:
             done = True
-            reward = -10000
-        elif kmh <= 20:
+            reward = -1000
+        elif kmh <= 50:
             done = False
             reward = -1
         else:
             done = False
-            reward = 1
+            reward = 2
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
-                    reward -= 50
-                    # done = True
+                    reward -= 1
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
-                    reward -= 100
-                    # done = True
+                    reward -= 3
 
             self.lane_invasion = []
 
@@ -267,14 +264,15 @@ class CarEnv:
 
 
 class DQNAgent:
-    def __init__(self, model, discount_rate=0.99, deque_maxlen=5000, update_frequency=50):
+    def __init__(self, model, discount_rate=0.99, deque_maxlen=5000, update_frequency=50, time_step=50):
         self.discount_rate = discount_rate
         self.update_frequency = update_frequency
+        self.time_step = time_step
 
         self.model = model
         self.target_model = keras.models.clone_model(self.model)
         self.target_model.set_weights(self.model.get_weights())
-        self.optimizer = Adam(lr=0.01)
+        self.optimizer = keras.optimizers.Adam(lr=0.01)
         self.loss_fn = keras.losses.Huber()
 
         self.replay_memory = deque(maxlen=deque_maxlen)
@@ -342,11 +340,10 @@ def create_model(input_shape, action_num, include_velocity=True):
     x = keras.layers.concatenate([input_1, input_2])
     x = keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255)(x)
 
-    x = keras.layers.Conv2D(64, 7, activation="relu", padding="same")(x)
-    x = keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same')(x)
-    x = keras.layers.Conv2D(64, 3, activation="relu", padding="same")(x)
-    x = keras.layers.AveragePooling2D(pool_size=(5, 5), strides=(3, 3), padding='same')(x)
-    x = keras.layers.Conv2D(64, 3, activation="relu", padding="same")(x)
+    x = keras.layers.Conv2D(64, 7, strides=3, activation="relu", padding="same")(x)
+    x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
+    x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
+    x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
     x = keras.layers.GlobalAvgPool2D()(x)
 
     if include_velocity:
@@ -376,24 +373,24 @@ if __name__ == "__main__":
 
     model = create_model(input_shape=(IM_HEIGHT, IM_WIDTH, 3), action_num=action_num)
     # print(model.summary())
-    # model.load_weights(f'models/-5400.50avg_0.28epsilon_50s run_seconds.h5')
+    # model.load_weights(f'models/-11158.00min_-9037.55avg_0.94epsilon_50s run_seconds.h5')
 
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_rgb_camera=False, run_seconds_per_episode=run_seconds_per_episode)
 
     EPISODES = 1000
-    best_score = -np.inf
-    # best_score = -227
-    max_epsilon = 0.5
+    best_min = -np.inf
+    best_average = -np.inf
+    max_epsilon = 0.95
     total_rewards_list = []
 
-    for episode in tqdm(range(EPISODES+1), ascii=True, unit="episodes"):
+    for episode in tqdm(range(EPISODES), ascii=True, unit="episodes"):
         state = env.reset()
         episode_reward = 0
         done = False
 
         while True:
-            epsilon = max(max_epsilon - episode / 500, 0.1)
+            epsilon = max(max_epsilon - episode / EPISODES, 0.01)
             action = agent.epsilon_greedy_policy(state, epsilon)
             new_state, reward, done, _ = env.step(action)
             agent.replay_memory.append((state, action, reward, new_state, done))
@@ -404,15 +401,18 @@ if __name__ == "__main__":
                 break
 
         total_rewards_list.append(episode_reward)
-        if episode % 10 == 0:
+        if episode != 0 and episode % 10 == 0:
             average_reward = sum(total_rewards_list) / len(total_rewards_list)
+            min_reward = min(total_rewards_list)
+            max_reward = max(total_rewards_list)
 
-            if average_reward > best_score:
-                best_score = average_reward
-                min_reward = min(total_rewards_list)
-                max_reward = max(total_rewards_list)
+            if min_reward > best_min or average_reward > best_average:
+                if min_reward > best_min:
+                    best_min = min_reward
+                elif average_reward > best_average:
+                    best_average = average_reward
 
-                agent.model.save(f'models/{average_reward:.2f}avg_{epsilon:.2f}epsilon'
+                agent.model.save(f'models/{min_reward:.2f}min_{average_reward:.2f}avg_{epsilon:.2f}epsilon'
                                  f'_{run_seconds_per_episode}s run_seconds.h5')
                 print(f"Save model by {average_reward:_>7.2f}avg__{max_reward:_>7.2f}max__{min_reward:_>7.2f}min")
 

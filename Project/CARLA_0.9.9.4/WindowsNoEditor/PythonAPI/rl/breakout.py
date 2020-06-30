@@ -6,7 +6,7 @@ import time
 from collections import deque
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import TimeDistributed, Conv2D, Lambda
 from tqdm import tqdm
 
 # 声明使用的环境
@@ -20,19 +20,21 @@ env.seed(42)
 
 
 class DQNAgent:
-    def __init__(self, model, discount_rate=0.99, deque_maxlen=5000, update_frequency=50):
+    def __init__(self, model, discount_rate=0.99, deque_maxlen=5000, update_frequency=50, time_step=50):
         self.discount_rate = discount_rate
         self.update_frequency = update_frequency
+        self.time_step = time_step
 
         self.model = model
         self.target_model = keras.models.clone_model(self.model)
         self.target_model.set_weights(self.model.get_weights())
-        # self.optimizer = Adam(lr=0.01)
-        self.optimizer = keras.optimizers.RMSprop(lr=2.5e-4, rho=0.95, momentum=0.0,
-                                                  epsilon=0.00001, centered=True)
+        self.optimizer = keras.optimizers.Adam(lr=0.01)
+        # self.optimizer = keras.optimizers.RMSprop(lr=2.5e-4, rho=0.95, momentum=0.0,
+        #                                           epsilon=0.00001, centered=True)
         self.loss_fn = keras.losses.Huber()
 
         self.replay_memory = deque(maxlen=deque_maxlen)
+        self.image_memory = deque(maxlen=time_step)
         self.target_update_counter = 0
 
     def training_step(self, batch_size=32, soft_update=False):
@@ -74,21 +76,22 @@ class DQNAgent:
     def epsilon_greedy_policy(self, state, epsilon=0):
         if np.random.rand() < epsilon:
             # action = env.action_space.sample()
-            return np.random.randint(self.model.output.shape[1])  # 动作个数
+            return np.random.randint(self.model.output.shape[1])
         else:
             Q_values = self.model.predict(state[np.newaxis])
             return np.argmax(Q_values[0])
 
 
-def create_model(input_shape, action_num):
-    input = keras.layers.Input(shape=input_shape)
+def create_model(input_shape, action_num, time_step=50):
+    input = keras.layers.Input(shape=(time_step, *input_shape))
 
-    x = keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255)(input)
+    x = TimeDistributed(Lambda(lambda image: tf.cast(image, np.float32) / 255))(input)
 
-    x = keras.layers.Conv2D(32, 8, strides=4, activation="relu", padding="same")(x)
-    x = keras.layers.Conv2D(64, 4, strides=2, activation="relu", padding="same")(x)
-    x = keras.layers.Conv2D(64, 3, activation="relu", padding="same")(x)
-    x = keras.layers.GlobalAvgPool2D()(x)
+    x = TimeDistributed(Conv2D(32, 8, strides=4, activation="relu", padding="same"))(x)
+    x = TimeDistributed(Conv2D(64, 4, strides=2, activation="relu", padding="same"))(x)
+    x = TimeDistributed(Conv2D(64, 3, activation="relu", padding="same"))(x)
+    x = TimeDistributed(keras.layers.GlobalAvgPool2D())(x)
+    x = x[:, -1]
 
     output = keras.layers.Dense(action_num)(x)
 
@@ -101,13 +104,13 @@ if __name__ == "__main__":
         os.makedirs("./models")
 
     action_num = env.action_space.n
-    batch_size = 256
+    batch_size = 32
 
-    model = create_model(input_shape=env.observation_space.shape, action_num=action_num)
+    model = create_model(input_shape=env.observation_space.shape, action_num=action_num, time_step=10)
     print(model.summary())
-    # model.load_weights(f'models/-5400.50avg_0.28epsilon_50s run_seconds.h5')
+    model.load_weights(f'models/2.45avg_0.89epsilon.h5')
 
-    agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=1000000)
+    agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=3000, time_step=10)
 
     EPISODES = 1000
     best_score = -np.inf
@@ -115,8 +118,13 @@ if __name__ == "__main__":
     max_epsilon = 0.9
     total_rewards_list = []
 
-    for episode in tqdm(range(EPISODES+1), ascii=True, unit="episodes"):
-        state = env.reset()
+    for episode in tqdm(range(EPISODES), ascii=True, unit="episodes"):
+        obs_image = env.reset()
+        agent.image_memory.clear()
+        for _ in range(agent.time_step):
+            agent.image_memory.append(obs_image)
+
+        state = np.array(agent.image_memory)
         episode_reward = 0
         done = False
 
@@ -124,7 +132,9 @@ if __name__ == "__main__":
             env.render()
             epsilon = max(max_epsilon - episode / EPISODES, 0.01)
             action = agent.epsilon_greedy_policy(state, epsilon)
-            new_state, reward, done, _ = env.step(action)
+            obs_image, reward, done, _ = env.step(action)
+            agent.image_memory.append(obs_image)
+            new_state = np.array(agent.image_memory)
             agent.replay_memory.append((state, action, reward, new_state, done))
             state = new_state
             episode_reward += reward
@@ -133,7 +143,7 @@ if __name__ == "__main__":
                 break
 
         total_rewards_list.append(episode_reward)
-        if episode % 10 == 0:
+        if episode != 0 and episode % 10 == 0:
             average_reward = sum(total_rewards_list) / len(total_rewards_list)
 
             if average_reward > best_score:
