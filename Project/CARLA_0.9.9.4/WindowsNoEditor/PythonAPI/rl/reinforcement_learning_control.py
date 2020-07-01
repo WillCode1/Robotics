@@ -17,6 +17,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import backend
 from tensorflow.keras.applications.xception import Xception
+from tensorflow.keras.optimizers import Adam
 from tqdm import tqdm
 
 try:
@@ -52,7 +53,7 @@ Instance Variables
 
 
 class CarEnv:
-    def __init__(self, img_height, img_width, show_rgb_camera=True, show_sem_camera=False,
+    def __init__(self, img_height, img_width, show_rgb_camera=False, show_sem_camera=False,
                  show_depth_camera=False, run_seconds_per_episode=None):
         self.show_rgb_camera = show_rgb_camera
         self.show_sem_camera = show_sem_camera
@@ -238,20 +239,23 @@ class CarEnv:
 
         if len(self.collision_hist) != 0:
             done = True
-            reward = -1000
-        elif kmh <= 50:
+            reward = -10000
+        elif kmh <= 30:
             done = False
             reward = -1
+        elif kmh <= 50:
+            done = False
+            reward = 10
         else:
             done = False
-            reward = 2
+            reward = -10
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
-                    reward -= 1
+                    reward -= 10
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
-                    reward -= 3
+                    reward -= 30
 
             self.lane_invasion = []
 
@@ -264,21 +268,20 @@ class CarEnv:
 
 
 class DQNAgent:
-    def __init__(self, model, discount_rate=0.99, deque_maxlen=5000, update_frequency=50, time_step=50):
+    def __init__(self, model, discount_rate=0.99, deque_maxlen=5000, update_frequency=50):
         self.discount_rate = discount_rate
         self.update_frequency = update_frequency
-        self.time_step = time_step
 
         self.model = model
         self.target_model = keras.models.clone_model(self.model)
         self.target_model.set_weights(self.model.get_weights())
-        self.optimizer = keras.optimizers.Adam(lr=0.01)
+        self.optimizer = Adam(lr=0.01)
         self.loss_fn = keras.losses.Huber()
 
         self.replay_memory = deque(maxlen=deque_maxlen)
         self.target_update_counter = 0
 
-    def training_step(self, min_replay_memory_size=1000, batch_size=32, soft_update=False):
+    def training_step(self, min_replay_memory_size=1000, batch_size=32, soft_update=True):
         if len(self.replay_memory) < min_replay_memory_size:
             return
 
@@ -308,18 +311,17 @@ class DQNAgent:
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
 
-        self.target_update_counter += 1
-        if self.target_update_counter > self.update_frequency:
-            self.target_update_counter = 0
-            # 更新目标模型
-            if not soft_update:
+        if soft_update:
+            target_weights = self.target_model.get_weights()
+            online_weights = self.model.get_weights()
+            for index in range(len(target_weights)):
+                target_weights[index] = 0.99 * target_weights[index] + 0.01 * online_weights[index]
+            self.target_model.set_weights(target_weights)
+        else:
+            self.target_update_counter += 1
+            if self.target_update_counter > self.update_frequency:
+                self.target_update_counter = 0
                 self.target_model.set_weights(self.model.get_weights())
-            else:  # 软更新方式
-                target_weights = self.target_model.get_weights()
-                online_weights = self.model.get_weights()
-                for index in range(len(target_weights)):
-                    target_weights[index] = 0.99 * target_weights[index] + 0.01 * online_weights[index]
-                self.target_model.set_weights(target_weights)
 
     def epsilon_greedy_policy(self, state, epsilon=0):
         if np.random.rand() < epsilon:
@@ -373,15 +375,15 @@ if __name__ == "__main__":
 
     model = create_model(input_shape=(IM_HEIGHT, IM_WIDTH, 3), action_num=action_num)
     # print(model.summary())
-    # model.load_weights(f'models/-11158.00min_-9037.55avg_0.94epsilon_50s run_seconds.h5')
+    model.load_weights(f'models/-100186.00min_-40440.60avg_0.53epsilon_50s run_seconds.h5')
 
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_rgb_camera=False, run_seconds_per_episode=run_seconds_per_episode)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=run_seconds_per_episode)
 
     EPISODES = 1000
     best_min = -np.inf
     best_average = -np.inf
-    max_epsilon = 0.95
+    max_epsilon = 0.4
     total_rewards_list = []
 
     for episode in tqdm(range(EPISODES), ascii=True, unit="episodes"):
@@ -414,7 +416,9 @@ if __name__ == "__main__":
 
                 agent.model.save(f'models/{min_reward:.2f}min_{average_reward:.2f}avg_{epsilon:.2f}epsilon'
                                  f'_{run_seconds_per_episode}s run_seconds.h5')
-                print(f"Save model by {average_reward:_>7.2f}avg__{max_reward:_>7.2f}max__{min_reward:_>7.2f}min")
+                print(f"Save model.{average_reward:_>7.2f}avg__{max_reward:_>7.2f}max__{min_reward:_>7.2f}min")
+            else:
+                print(f"{average_reward:_>7.2f}avg__{max_reward:_>7.2f}max__{min_reward:_>7.2f}min")
 
             total_rewards_list = []
 

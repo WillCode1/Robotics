@@ -34,6 +34,7 @@ class DQNAgent:
         self.loss_fn = keras.losses.Huber()
 
         self.replay_memory = deque(maxlen=deque_maxlen)
+        # 可以考虑存index
         self.image_memory = deque(maxlen=time_step)
         self.target_update_counter = 0
 
@@ -106,11 +107,11 @@ if __name__ == "__main__":
     action_num = env.action_space.n
     batch_size = 32
 
-    model = create_model(input_shape=env.observation_space.shape, action_num=action_num, time_step=10)
+    model = create_model(input_shape=env.observation_space.shape, action_num=action_num, time_step=5)
     print(model.summary())
-    model.load_weights(f'models/2.45avg_0.89epsilon.h5')
+    model.load_weights(f'models/2.20avg_0.87epsilon.h5')
 
-    agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=3000, time_step=10)
+    agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=100, time_step=5)
 
     EPISODES = 1000
     best_score = -np.inf
