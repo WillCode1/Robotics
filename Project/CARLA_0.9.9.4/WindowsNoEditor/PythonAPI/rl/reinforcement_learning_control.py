@@ -106,6 +106,7 @@ class CarEnv:
             except RuntimeError:
                 loop = True
 
+        # vehicle.set_autopilot(True)
         self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
         self.actor_list.append(self.vehicle)
         return vehicle_transform
