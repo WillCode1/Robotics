@@ -18,17 +18,15 @@ model = keras.models.Sequential([
     keras.layers.Dense(env.action_space.n, activation="softmax"),
 ])
 # print(model.summary())
-# print(model.trainable_variables)
 
 
 def play_one_step(env, obs, model, loss_fn):
     with tf.GradientTape() as tape:
-        action_prob = model.predict(obs[np.newaxis])[0]
-        action = np.random.choice(env.action_space.n, 1, p=action_prob)[0]
+        prob = model.predict(obs[np.newaxis])[0]
+        action_prob = model(obs[np.newaxis])[0]
+        action = np.random.choice(env.action_space.n, 1, p=prob)[0]
         y_target = np.zeros([env.action_space.n], dtype=np.float32)
         y_target[action] = 1
-        y_target = tf.convert_to_tensor(y_target, dtype=tf.float32)
-        action_prob = tf.convert_to_tensor(action_prob, dtype=tf.float32)
         loss = tf.reduce_mean(loss_fn(y_target, action_prob))
     grads = tape.gradient(loss, model.trainable_variables)
     obs, reward, done, info = env.step(action)

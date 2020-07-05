@@ -18,7 +18,6 @@ model = keras.models.Sequential([
     keras.layers.Dense(1, activation="sigmoid"),
 ])
 # print(model.summary())
-# print(model.trainable_variables)
 
 
 def play_one_step(env, obs, model, loss_fn):
