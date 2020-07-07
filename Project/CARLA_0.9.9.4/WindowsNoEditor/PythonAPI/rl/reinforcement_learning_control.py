@@ -1,7 +1,8 @@
 # reinforcement_learning_control.
 """
-    1. 速度的多样性
-    2. 是否设置目标点
+    1. sensor.other.obstacle 用于保持车距
+    2. LaneType
+    3. 是否设置目标点
 """
 
 import glob
@@ -29,6 +30,8 @@ except IndexError:
     pass
 
 import carla
+from carla_api.misc import get_speed
+from carla_api.misc import GlobalRouteAgent
 
 '''
 carla.VehicleControl
@@ -54,7 +57,7 @@ Instance Variables
 
 class CarEnv:
     def __init__(self, img_height, img_width, show_rgb_camera=False, show_sem_camera=False,
-                 show_depth_camera=False, run_seconds_per_episode=None):
+                 show_depth_camera=False, run_seconds_per_episode=None, no_rendering_mode=True):
         self.show_rgb_camera = show_rgb_camera
         self.show_sem_camera = show_sem_camera
         self.show_depth_camera = show_depth_camera
@@ -66,6 +69,11 @@ class CarEnv:
         self.client = carla.Client("localhost", 2000)
         self.client.set_timeout(2.0)
         self.world = self.client.get_world()
+        self.map = self.world.get_map()
+        settings = self.world.get_settings()
+        settings.no_rendering_mode = no_rendering_mode
+        self.world.apply_settings(settings)
+
         self.blueprint_library = self.world.get_blueprint_library()
         self.model_3 = self.blueprint_library.filter("model3")[0]
         self.sem_camera_input = None
@@ -75,6 +83,8 @@ class CarEnv:
         self.lane_invasion = []
         self.acceleration = None
         self.angular_velocity = None
+
+        self.global_route = None
 
         random.seed(42)
         np.random.seed(42)
@@ -106,8 +116,8 @@ class CarEnv:
             except RuntimeError:
                 loop = True
 
-        # vehicle.set_autopilot(True)
         self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
+        # vehicle.set_autopilot(True)
         self.actor_list.append(self.vehicle)
         return vehicle_transform
 
@@ -157,6 +167,13 @@ class CarEnv:
         camera_transform = carla.Transform(carla.Location(x=2, y=0, z=1), carla.Rotation(0, 180, 0))
         other_transform = carla.Transform(carla.Location(0, 0, 0), carla.Rotation(0, 0, 0))
 
+        # 初始化全局路由代理
+        self.global_route = GlobalRouteAgent(self.vehicle, target_speed=20, sampling_distance=2.0)
+        location = random.choice(self.world.get_map().get_spawn_points()).location
+        start_waypoint = self.map.get_waypoint(self.vehicle.get_location())
+        end_waypoint = self.map.get_waypoint(carla.Location(location.x, location.y, location.z))
+        route = self.global_route.trace_route(start_waypoint, end_waypoint)
+
         # 语义分割相机
         sem_camera = self.blueprint_library.find("sensor.camera.semantic_segmentation")
         sem_camera.set_attribute("image_size_x", f"{self.img_width}")
@@ -192,7 +209,7 @@ class CarEnv:
             self.actor_list.append(rgb_camera)
 
         """
-        雷达传感器
+        雷达传感器、sensor.other.obstacle
         """
         # Add IMU sensor to vehicle.
         imu_bp = self.blueprint_library.find('sensor.other.imu')
@@ -234,9 +251,7 @@ class CarEnv:
         elif action == 4:
             self.vehicle.apply_control(carla.VehicleControl(throttle=0.0))
 
-        velocity = self.vehicle.get_velocity()
-        velocity = math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
-        kmh = 3.6 * velocity
+        velocity, kmh = get_speed(self.vehicle)
 
         if len(self.collision_hist) != 0:
             done = True
@@ -246,7 +261,7 @@ class CarEnv:
             reward = -1
         elif kmh <= 50:
             done = False
-            reward = 10
+            reward = 100
         else:
             done = False
             reward = -10
@@ -265,7 +280,7 @@ class CarEnv:
                 done = True
 
         return (self.sem_camera_input, self.depth_camera_input,
-                self.acceleration, self.angular_velocity, np.array([velocity])), reward, done, None
+                self.acceleration, self.angular_velocity, velocity), reward, done, None
 
 
 class DQNAgent:
@@ -376,10 +391,11 @@ if __name__ == "__main__":
 
     model = create_model(input_shape=(IM_HEIGHT, IM_WIDTH, 3), action_num=action_num)
     # print(model.summary())
-    model.load_weights(f'models/-100186.00min_-40440.60avg_0.53epsilon_50s run_seconds.h5')
+    # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=run_seconds_per_episode)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=run_seconds_per_episode,
+                 no_rendering_mode=False)
 
     EPISODES = 1000
     best_min = -np.inf
