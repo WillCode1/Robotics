@@ -16,13 +16,13 @@ from carla_api.global_route_planner_dao import GlobalRoutePlannerDAO
 
 
 class GlobalRouteAgent:
-    def __init__(self, vehicle, target_speed=20, sampling_distance=2.0):
+    def __init__(self, vehicle, target_speed=20):
         self._vehicle = vehicle
-        self._sampling_distance = sampling_distance
         self._target_speed = target_speed
         self._grp = None
+        self.route = None
 
-    def trace_route(self, start_waypoint, end_waypoint):
+    def trace_route(self, start_waypoint, end_waypoint, sampling_distance=5.0):
         """
         This method sets up a global router and returns the optimal route
         from start_waypoint to end_waypoint
@@ -30,17 +30,29 @@ class GlobalRouteAgent:
 
         # Setting up global router
         if self._grp is None:
-            dao = GlobalRoutePlannerDAO(self._vehicle.get_world().get_map(), self._sampling_distance)
+            dao = GlobalRoutePlannerDAO(self._vehicle.get_world().get_map(), sampling_distance)
             grp = GlobalRoutePlanner(dao)
             grp.setup()
             self._grp = grp
 
         # Obtain route plan
-        route = self._grp.trace_route(
-            start_waypoint.transform.location,
-            end_waypoint.transform.location)
-
+        route = self._grp.trace_route(start_waypoint.transform.location, end_waypoint.transform.location)
+        self.route = route
         return route
+
+    def get_route(self):
+        return self.route
+
+
+def spawn_car(world, route, car, z=1):
+    for wpt in route:
+        wpt_t = wpt[0].transform
+        wpt_t.location.z = z
+        try:
+            world.spawn_actor(car, wpt_t)
+            print('succ!')
+        except RuntimeError:
+            print('failed!')
 
 
 def draw_waypoints(world, waypoints, z=0.5):

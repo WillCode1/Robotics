@@ -3,6 +3,8 @@
     1. sensor.other.obstacle 用于保持车距
     2. LaneType
     3. 是否设置目标点
+    4。连接线有障碍
+    5. 传入多个点
 """
 
 import glob
@@ -32,6 +34,8 @@ except IndexError:
 import carla
 from carla_api.misc import get_speed
 from carla_api.misc import GlobalRouteAgent
+from carla_api.misc import draw_waypoints
+from carla_api.misc import spawn_car
 
 '''
 carla.VehicleControl
@@ -168,11 +172,13 @@ class CarEnv:
         other_transform = carla.Transform(carla.Location(0, 0, 0), carla.Rotation(0, 0, 0))
 
         # 初始化全局路由代理
-        self.global_route = GlobalRouteAgent(self.vehicle, target_speed=20, sampling_distance=2.0)
+        self.global_route = GlobalRouteAgent(self.vehicle, target_speed=20)
         location = random.choice(self.world.get_map().get_spawn_points()).location
         start_waypoint = self.map.get_waypoint(self.vehicle.get_location())
         end_waypoint = self.map.get_waypoint(carla.Location(location.x, location.y, location.z))
-        route = self.global_route.trace_route(start_waypoint, end_waypoint)
+        route = self.global_route.trace_route(start_waypoint, end_waypoint, sampling_distance=10)
+        # draw_waypoints(self.world, route, z=100)
+        spawn_car(self.world, route, self.model_3)
 
         # 语义分割相机
         sem_camera = self.blueprint_library.find("sensor.camera.semantic_segmentation")
@@ -394,7 +400,7 @@ if __name__ == "__main__":
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
     agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=run_seconds_per_episode,
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=run_seconds_per_episode,
                  no_rendering_mode=False)
 
     EPISODES = 1000
