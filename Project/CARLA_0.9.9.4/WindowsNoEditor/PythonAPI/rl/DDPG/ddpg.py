@@ -2,8 +2,8 @@ import sys
 import numpy as np
 
 from tqdm import tqdm
-from .actor import Actor
-from .critic import Critic
+from rl.DDPG.actor import Actor
+from rl.DDPG.critic import Critic
 from utils.stats import gather_stats
 from utils.networks import tfSummary, OrnsteinUhlenbeckProcess
 from utils.memory_buffer import MemoryBuffer
