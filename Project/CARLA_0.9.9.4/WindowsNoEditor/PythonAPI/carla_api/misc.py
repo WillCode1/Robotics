@@ -22,7 +22,7 @@ class GlobalRouteAgent:
         self._grp = None
         self.route = None
 
-    def trace_route(self, start_waypoint, end_waypoint, sampling_distance=5.0):
+    def trace_route(self, start_waypoint, end_waypoint, sampling_distance=10.0):
         """
         This method sets up a global router and returns the optimal route
         from start_waypoint to end_waypoint
@@ -44,7 +44,7 @@ class GlobalRouteAgent:
         return self.route
 
 
-def spawn_car(world, route, car, z=1):
+def spawn_car(world, route, car, z=2):
     for wpt in route:
         wpt_t = wpt[0].transform
         wpt_t.location.z = z

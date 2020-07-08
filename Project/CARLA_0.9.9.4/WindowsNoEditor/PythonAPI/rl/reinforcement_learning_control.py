@@ -176,7 +176,7 @@ class CarEnv:
         location = random.choice(self.world.get_map().get_spawn_points()).location
         start_waypoint = self.map.get_waypoint(self.vehicle.get_location())
         end_waypoint = self.map.get_waypoint(carla.Location(location.x, location.y, location.z))
-        route = self.global_route.trace_route(start_waypoint, end_waypoint, sampling_distance=10)
+        route = self.global_route.trace_route(start_waypoint, end_waypoint, sampling_distance=20)
         # draw_waypoints(self.world, route, z=100)
         spawn_car(self.world, route, self.model_3)
 
