@@ -21,12 +21,14 @@ class GlobalRouteAgent:
         self._target_speed = target_speed
         self._grp = None
         self.route = None
+        self.target_waypoint = None
 
     def trace_route(self, start_waypoint, end_waypoint, sampling_distance=10.0):
         """
         This method sets up a global router and returns the optimal route
         from start_waypoint to end_waypoint
         """
+        self.target_waypoint = end_waypoint
 
         # Setting up global router
         if self._grp is None:

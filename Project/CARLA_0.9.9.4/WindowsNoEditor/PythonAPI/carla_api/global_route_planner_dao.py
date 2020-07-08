@@ -60,7 +60,9 @@ class GlobalRoutePlannerDAO(object):
                     seg_dict['path'].append(w)
                     w = w.next(self._sampling_resolution)[0]
             else:
-                seg_dict['path'].append(wp1.next(self._sampling_resolution)[0])
+                temp = wp1.next(self._sampling_resolution)
+                if len(temp) != 0:
+                    seg_dict['path'].append(temp[0])
             topology.append(seg_dict)
         return topology
 
