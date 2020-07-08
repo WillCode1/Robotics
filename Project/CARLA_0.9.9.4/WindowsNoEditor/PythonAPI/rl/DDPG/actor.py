@@ -30,8 +30,10 @@ class Actor:
         x = keras.layers.Flatten()(x)
         x = keras.layers.Dense(128, activation="relu")(x)
         # x = keras.layers.GaussianNoise(1.0)(x)
-        action = keras.layers.Dense(self.action_dim, activation="tanh", kernel_initializer=RandomUniform())(x)
-        action = keras.layers.Lambda(lambda i: i * self.act_range)(action)
+        throttle_brake = keras.layers.Dense(self.action_dim, activation="tanh", kernel_initializer=RandomUniform())(x)
+        steer = keras.layers.Dense(self.action_dim, activation="tanh", kernel_initializer=RandomUniform())(x)
+        action = keras.layers.concatenate([throttle_brake, steer])
+        # action = keras.layers.Lambda(lambda i: i * self.act_range)(action)
         return keras.Model(inputs=[state], outputs=[action])
 
     def predict(self, state):

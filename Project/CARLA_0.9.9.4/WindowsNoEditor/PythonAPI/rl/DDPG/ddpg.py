@@ -13,13 +13,13 @@ class DDPG:
     """ Deep Deterministic Policy Gradient (DDPG) Helper Class
     """
 
-    def __init__(self, act_dim, env_dim, act_range, k, buffer_size=20000, gamma=0.99, lr=0.00005, tau=0.001):
+    def __init__(self, act_dim, env_dim, act_range, k=1, buffer_size=5000, gamma=0.99, lr=0.00005, tau=0.001):
         """ Initialization
         """
         # Environment and A2C parameters
         self.act_dim = act_dim
         self.act_range = act_range
-        self.env_dim = (k,) + env_dim
+        self.env_dim = env_dim
         self.gamma = gamma
         self.lr = lr
         # Create actor and critic networks
@@ -65,11 +65,11 @@ class DDPG:
         self.actor.transfer_weights()
         self.critic.transfer_weights()
 
-    def train(self, env, args, summary_writer):
+    def train(self, env, batch_size=32, n_episode=1000, if_gather_stats=False):
         results = []
 
         # First, gather experience
-        tqdm_e = tqdm(range(args.nb_episodes), desc='Score', leave=True, unit=" episodes")
+        tqdm_e = tqdm(range(n_episode), desc='Score', leave=True, unit=" episodes")
         for e in tqdm_e:
             # Reset episode
             time, total_reward, done = 0, 0, False
@@ -77,8 +77,6 @@ class DDPG:
             noise = OrnsteinUhlenbeckProcess(size=self.act_dim)
 
             while not done:
-                if args.render:
-                    env.render()
                 # Actor picks an action (following the deterministic policy)
                 action = self.policy_action(old_state)
                 # Clip continuous values to be valid w.r.t. environment
@@ -88,7 +86,7 @@ class DDPG:
                 # Add outputs to memory buffer
                 self.memorize(old_state, action, reward, done, new_state)
                 # Sample experience from buffer
-                states, actions, rewards, dones, new_states, _ = self.sample_batch(args.batch_size)
+                states, actions, rewards, dones, new_states, _ = self.sample_batch(batch_size)
                 # Predict target q-values using target networks
                 q_values = self.critic.target_predict([new_states, self.actor.target_predict(new_states)])
                 # Compute critic target
@@ -101,14 +99,10 @@ class DDPG:
                 time += 1
 
             # Gather stats every episode for plotting
-            if args.gather_stats:
+            if if_gather_stats:
                 mean, stdev = gather_stats(self, env)
                 results.append([e, mean, stdev])
 
-            # Export results for Tensorboard
-            score = tfSummary('score', total_reward)
-            summary_writer.add_summary(score, global_step=e)
-            summary_writer.flush()
             # Display score
             tqdm_e.set_description("Score: " + str(total_reward))
             tqdm_e.refresh()
