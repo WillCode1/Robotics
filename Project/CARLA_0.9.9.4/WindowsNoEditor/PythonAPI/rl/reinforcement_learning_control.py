@@ -41,10 +41,10 @@ if __name__ == "__main__":
 
     algo = DDPG(act_dim=action_dim, state_dim=state_dim, act_range=1.0)
     # agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=run_seconds_per_episode,
-                 no_rendering_mode=False)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=run_seconds_per_episode,
+                 no_rendering_mode=True)
 
-    stats = algo.train(env, batch_size=batch_size, n_episode=EPISODES)
+    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES)
 
     EPISODES = 1000
     best_min = -np.inf

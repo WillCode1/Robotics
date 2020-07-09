@@ -50,7 +50,7 @@ class Actor:
     def predict(self, state):
         """ Action prediction
         """
-        return self.model.predict(np.expand_dims(state, axis=0))
+        return self.model.predict(state)
 
     def target_predict(self, inp):
         """ Action prediction (target network)
@@ -69,10 +69,11 @@ class Actor:
     def train(self, states, action_gradient):
         """ Actor Training
         """
-        actions = self.model.predict(states)
+        with tf.GradientTape() as tape:
+            actions = self.model(states)
         # 链式法则
         # 反馈Q值越大损失越小，得到的反馈Q值越小损失越大，因此只要对状态估计网络返回的Q值取负号
-        params_grad = tf.gradients(actions, self.model.trainable_variables, -action_gradient)
+        params_grad = tape.gradient(actions, self.model.trainable_variables, -action_gradient)
         self.optimizer.apply_gradients(zip(params_grad, self.model.trainable_variables))
 
     def save(self, path):

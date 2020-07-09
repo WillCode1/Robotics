@@ -49,19 +49,21 @@ class Critic:
     def action_gradients(self, states, actions):
         """ Compute Q-value gradients w.r.t. states and policy-actions
         """
-        critic_target = self.model.predict((states, actions))
-        action_gradients = tf.gradients(critic_target, actions)
+        with tf.GradientTape() as tape:
+            critic_target = self.model(states + (actions,))
+        action_gradients = tape.gradient(critic_target, actions)
         return action_gradients
 
     def target_predict(self, inp):
         """ Predict Q-Values using the target network
         """
-        return self.target_model.predict(inp)
+        states, actions = inp
+        return self.target_model.predict(states + (actions,))
 
     def train_on_batch(self, states, actions, critic_target):
         """ Train the critic network on batch of sampled experience
         """
-        return self.model.train_on_batch([states, actions], critic_target)
+        return self.model.train_on_batch(states + (actions,), critic_target)
 
     def transfer_weights(self):
         """ Transfer model weights to target model with a factor of Tau

@@ -233,16 +233,12 @@ class CarEnv:
         return (self.sem_camera_input, self.depth_camera_input, np.array([0.0]))
 
     def step(self, action):
-        if action == 0:
-            self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=-1))
-        elif action == 1:
-            self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=0))
-        elif action == 2:
-            self.vehicle.apply_control(carla.VehicleControl(throttle=1.0, steer=1))
-        elif action == 3:
-            self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=1.0))
-        elif action == 4:
-            self.vehicle.apply_control(carla.VehicleControl(throttle=0.0))
+        throttle_brake, steer = action
+
+        if throttle_brake >= 0:
+            self.vehicle.apply_control(carla.VehicleControl(throttle=throttle_brake, steer=steer))
+        else:
+            self.vehicle.apply_control(carla.VehicleControl(brake=-throttle_brake, steer=steer))
 
         velocity, kmh = get_speed(self.vehicle)
         self.current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
