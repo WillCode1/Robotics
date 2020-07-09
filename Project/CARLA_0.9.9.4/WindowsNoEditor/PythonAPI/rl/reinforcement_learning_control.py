@@ -15,15 +15,10 @@ import numpy as np
 import cv2
 import time
 import math
-from collections import deque
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import backend
-from tensorflow.keras.applications.xception import Xception
-from tensorflow.keras.optimizers import Adam
 from tqdm import tqdm
 
-import carla
 from rl.CarEnv import CarEnv
 from rl.DDPG.ddpg import DDPG
 from rl.DDPG.DDQN import DQNAgent
@@ -38,12 +33,13 @@ if __name__ == "__main__":
     batch_size = 8
     EPISODES = 1000
     run_seconds_per_episode = 50
-    state_dim = (IM_HEIGHT, IM_WIDTH, 3)
-
+    image_shape = (IM_HEIGHT, IM_WIDTH, 3)
+    state_dim = [image_shape, image_shape, 1]
+    action_dim = 2  # [throttle_brake, steer]
     # print(model.summary())
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
-    algo = DDPG(act_dim=3, env_dim=state_dim, act_range=1.0)
+    algo = DDPG(act_dim=action_dim, state_dim=state_dim, act_range=1.0)
     # agent = DQNAgent(model, discount_rate=0.99, deque_maxlen=5000)
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=run_seconds_per_episode,
                  no_rendering_mode=False)

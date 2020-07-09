@@ -230,8 +230,7 @@ class CarEnv:
             time.sleep(0.01)
 
         self.episode_start = time.time()
-        return (self.sem_camera_input, self.depth_camera_input,
-                self.acceleration, self.angular_velocity, np.array([0.0]))
+        return (self.sem_camera_input, self.depth_camera_input, np.array([0.0]))
 
     def step(self, action):
         if action == 0:
@@ -274,5 +273,14 @@ class CarEnv:
             if self.episode_start + self.run_seconds_per_episode < time.time():
                 done = True
 
-        return (self.sem_camera_input, self.depth_camera_input,
-                self.acceleration, self.angular_velocity, velocity), reward, done, None
+        return (self.sem_camera_input, self.depth_camera_input, velocity), reward, done, None
+
+
+if __name__ == "__main__":
+    IM_WIDTH = 800
+    IM_HEIGHT = 600
+    image_shape = (IM_HEIGHT, IM_WIDTH, 3)
+    state_dim = [image_shape, image_shape, 1]
+    action_dim = 2  # [throttle_brake, steer]
+
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, no_rendering_mode=False)

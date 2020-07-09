@@ -13,18 +13,18 @@ class DDPG:
     """ Deep Deterministic Policy Gradient (DDPG) Helper Class
     """
 
-    def __init__(self, act_dim, env_dim, act_range, k=1, buffer_size=5000, gamma=0.99, lr=0.00005, tau=0.001):
+    def __init__(self, act_dim, state_dim, act_range, k=1, buffer_size=5000, gamma=0.99, lr=0.00005, tau=0.001):
         """ Initialization
         """
         # Environment and A2C parameters
         self.act_dim = act_dim
         self.act_range = act_range
-        self.env_dim = env_dim
+        self.state_dim = state_dim
         self.gamma = gamma
         self.lr = lr
         # Create actor and critic networks
-        self.actor = Actor(self.env_dim, act_dim, act_range, 0.1 * lr, tau)
-        self.critic = Critic(self.env_dim, act_dim, lr, tau)
+        self.actor = Actor(self.state_dim, act_dim, act_range, 0.1 * lr, tau)
+        self.critic = Critic(self.state_dim, act_dim, lr, tau)
         self.buffer = MemoryBuffer(buffer_size)
 
     def policy_action(self, state):
@@ -117,3 +117,13 @@ class DDPG:
     def load_weights(self, path_actor, path_critic):
         self.critic.load_weights(path_critic)
         self.actor.load_weights(path_actor)
+
+
+if __name__ == "__main__":
+    IM_WIDTH = 800
+    IM_HEIGHT = 600
+    image_shape = (IM_HEIGHT, IM_WIDTH, 3)
+    state_dim = [image_shape, image_shape, 1]
+    action_dim = 2  # [throttle_brake, steer]
+
+    algo = DDPG(act_dim=action_dim, state_dim=state_dim, act_range=1.0)
