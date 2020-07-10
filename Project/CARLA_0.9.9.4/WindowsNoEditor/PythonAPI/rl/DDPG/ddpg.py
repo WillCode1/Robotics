@@ -86,7 +86,6 @@ class DDPG:
         params_grad = tape.gradient(actions, self.actor.model.trainable_variables, -action_grads)
         self.actor.optimizer.apply_gradients(zip(params_grad, self.actor.model.trainable_variables))
 
-        # Transfer weights to target networks at rate Tau
         self.actor.transfer_weights()
         self.critic.transfer_weights()
 
@@ -104,7 +103,6 @@ class DDPG:
         results = []
         mean_reward = -np.inf
 
-        # First, gather experience
         tqdm_e = tqdm(range(n_episode), desc='Score', leave=True, unit=" episodes")
         for episode in tqdm_e:
             # Reset episode

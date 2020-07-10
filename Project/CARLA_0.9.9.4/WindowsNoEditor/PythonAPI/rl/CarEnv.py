@@ -18,6 +18,7 @@ except IndexError:
 
 import carla
 from carla_api.misc import get_speed
+from carla_api.misc import distance_vehicle
 from carla_api.misc import GlobalRouteAgent
 from carla_api.misc import draw_waypoints
 from carla_api.misc import spawn_car
@@ -74,7 +75,7 @@ class CarEnv:
         self.angular_velocity = None
 
         self.global_route = None
-        self.current_waypoint = None
+        self.last_waypoint = None
 
         random.seed(42)
         np.random.seed(42)
@@ -154,7 +155,7 @@ class CarEnv:
         self.clear_env()
 
         vehicle_transform = self.init_vehicle()
-        self.current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
+        self.last_waypoint = self.map.get_waypoint(self.vehicle.get_location())
         camera_transform = carla.Transform(carla.Location(x=2, y=0, z=1), carla.Rotation(0, 180, 0))
         other_transform = carla.Transform(carla.Location(0, 0, 0), carla.Rotation(0, 0, 0))
 
@@ -242,27 +243,32 @@ class CarEnv:
             self.vehicle.apply_control(carla.VehicleControl(brake=-throttle_brake, steer=steer))
 
         velocity, kmh = get_speed(self.vehicle)
-        self.current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
+        current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
+        distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
+        self.last_waypoint = current_waypoint
 
         if len(self.collision_hist) != 0:
             done = True
-            reward = -10000
-        elif kmh <= 30:
+            reward = -100
+        elif current_waypoint.lane_type != carla.LaneChange.Driving:
+            done = True
+            reward = -100
+        elif distance >= 10:
             done = False
-            reward = -1
-        elif kmh <= 50:
-            done = False
-            reward = 100
-        else:
+            reward = 1
+        elif distance < 10:
             done = False
             reward = -10
+        else:
+            done = False
+            reward = 0
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
-                    reward -= 10
+                    reward -= 1
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
-                    reward -= 30
+                    reward -= 3
             self.lane_invasion = []
 
         if self.run_seconds_per_episode is not None:

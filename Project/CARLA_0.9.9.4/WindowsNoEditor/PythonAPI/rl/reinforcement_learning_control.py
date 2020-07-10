@@ -8,7 +8,6 @@
 
 import os
 import numpy as np
-from tqdm import tqdm
 import pandas as pd
 from rl.CarEnv import CarEnv
 from rl.DDPG.ddpg import DDPG
@@ -29,8 +28,8 @@ if __name__ == "__main__":
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
     algo = DDPG(act_dim=action_dim, state_dim=state_dim, act_range=1.0)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=run_seconds_per_episode,
-                 no_rendering_mode=False)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=run_seconds_per_episode,
+                 no_rendering_mode=True)
 
     stats = algo.play_and_train(env, path=f'models/', batch_size=batch_size, n_episode=EPISODES)
 
