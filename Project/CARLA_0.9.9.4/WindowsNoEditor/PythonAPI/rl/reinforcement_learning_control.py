@@ -1,7 +1,6 @@
 # reinforcement_learning_control.
 """
     1. sensor.other.obstacle 用于保持车距
-    2. LaneType
     3. 是否设置目标点
     5. 传入多个点，拐角处给出3个以上点（3~5个点）
 """
