@@ -243,20 +243,27 @@ class CarEnv:
             self.vehicle.apply_control(carla.VehicleControl(brake=-throttle_brake, steer=steer))
 
         velocity, kmh = get_speed(self.vehicle)
+        interval_time = time.time() - self.episode_start
+
         current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
         distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
         self.last_waypoint = current_waypoint
 
+        '''
+            1. 碰撞 done
+            2. 超出车道线 done
+            3. 5秒时间没有走过8米，怀疑在转圈
+        '''
         if len(self.collision_hist) != 0:
             done = True
             reward = -100
         elif current_waypoint.lane_type != carla.LaneChange.Driving:
             done = True
             reward = -100
-        elif distance >= 10:
+        elif int(interval_time) != 0 and int(interval_time) % 5 == 0 and distance >= 8:
             done = False
             reward = 1
-        elif distance < 10:
+        elif int(interval_time) != 0 and int(interval_time) % 5 == 0 and distance < 8:
             done = False
             reward = -10
         else:
@@ -271,9 +278,8 @@ class CarEnv:
                     reward -= 3
             self.lane_invasion = []
 
-        if self.run_seconds_per_episode is not None:
-            if self.episode_start + self.run_seconds_per_episode < time.time():
-                done = True
+        if self.run_seconds_per_episode is not None and interval_time > self.run_seconds_per_episode:
+            done = True
 
         return (self.sem_camera_input, self.depth_camera_input, velocity), reward, done, None
 
