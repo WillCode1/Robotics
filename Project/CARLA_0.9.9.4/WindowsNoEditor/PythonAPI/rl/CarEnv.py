@@ -233,6 +233,7 @@ class CarEnv:
         return (self.sem_camera_input, self.depth_camera_input, np.array([0.0]))
 
     def step(self, action):
+        action = action.astype(np.float64)
         throttle_brake, steer = action
 
         if throttle_brake >= 0:
@@ -262,7 +263,6 @@ class CarEnv:
                     reward -= 10
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
                     reward -= 30
-
             self.lane_invasion = []
 
         if self.run_seconds_per_episode is not None:
@@ -280,3 +280,7 @@ if __name__ == "__main__":
     action_dim = 2  # [throttle_brake, steer]
 
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, no_rendering_mode=False)
+    old_state = env.reset(), 0
+    action = (0, 0)
+    while True:
+        new_state, reward, done, _ = env.step(action)

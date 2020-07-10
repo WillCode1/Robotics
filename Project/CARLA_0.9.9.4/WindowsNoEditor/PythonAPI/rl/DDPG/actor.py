@@ -60,21 +60,8 @@ class Actor:
     def transfer_weights(self):
         """ Transfer model weights to target model with a factor of Tau
         """
-        weights = self.model.get_weights()
-        target_weights = self.target_model.get_weights()
-        for i in range(len(weights)):
-            target_weights[i] = self.tau * weights[i] + (1 - self.tau) * target_weights[i]
-        self.target_model.set_weights(target_weights)
-
-    def train(self, states, action_gradient):
-        """ Actor Training
-        """
-        with tf.GradientTape() as tape:
-            actions = self.model(states)
-        # 链式法则
-        # 反馈Q值越大损失越小，得到的反馈Q值越小损失越大，因此只要对状态估计网络返回的Q值取负号
-        params_grad = tape.gradient(actions, self.model.trainable_variables, -action_gradient)
-        self.optimizer.apply_gradients(zip(params_grad, self.model.trainable_variables))
+        for model_weight, target_weight in zip(self.model.weights, self.target_model.weights):
+            target_weight.assign(self.tau * model_weight + (1 - self.tau) * target_weight)
 
     def save(self, path):
         self.model.save_weights(path + '_actor.h5')

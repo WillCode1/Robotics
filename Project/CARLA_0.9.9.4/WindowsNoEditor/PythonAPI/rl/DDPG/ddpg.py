@@ -1,6 +1,6 @@
 import sys
 import numpy as np
-
+import tensorflow as tf
 from tqdm import tqdm
 from rl.DDPG.actor import Actor
 from rl.DDPG.critic import Critic
@@ -68,16 +68,24 @@ class DDPG:
         next_states = (input1, input2, input3)
         return states, actions, rewards, next_states, dones
 
-    def update_models(self, states, actions, critic_target):
+    def update_models(self, states, actions, q_target):
         """ Update actor and critic networks from sampled experience
         """
         # Train critic
-        self.critic.train_on_batch(states, actions, critic_target)
-        # Q-Value Gradients under Current Policy
-        actions = self.actor.model(states)
-        action_grads = self.critic.action_gradients(states, actions)
+        self.critic.model.train_on_batch([*states, actions], q_target)
+
         # Train actor
-        self.actor.train(states, np.array(action_grads).reshape((-1, self.act_dim)))
+        with tf.GradientTape() as tape:
+            with tf.GradientTape() as action_tape:
+                actions = self.actor.model(states)
+                action_tape.watch(actions)
+                q_target = self.critic.model([*states, actions])
+            action_grads = action_tape.gradient(q_target, actions)
+        # 链式法则
+        # 反馈Q值越大损失越小，得到的反馈Q值越小损失越大，因此只要对状态估计网络返回的Q值取负号
+        params_grad = tape.gradient(actions, self.actor.model.trainable_variables, -action_grads)
+        self.actor.optimizer.apply_gradients(zip(params_grad, self.actor.model.trainable_variables))
+
         # Transfer weights to target networks at rate Tau
         self.actor.transfer_weights()
         self.critic.transfer_weights()
@@ -86,18 +94,19 @@ class DDPG:
         # Sample experience from buffer
         states, actions, rewards, next_states, dones = self.sample_batch(batch_size)
         # Predict target q-values using target networks
-        q_values = self.critic.target_predict((next_states, self.actor.target_predict(next_states)))
+        next_q_values = self.critic.target_predict([next_states, self.actor.target_predict(next_states)])
         # Compute critic target
-        critic_target = self.bellman(rewards, q_values, dones)
+        q_target = self.bellman(rewards, next_q_values, dones)
         # Train both networks on sampled batch, update target networks
-        self.update_models(states, actions, critic_target)
+        self.update_models(states, actions, q_target)
 
-    def play_and_train(self, env, batch_size=32, n_episode=1000, if_gather_stats=False):
+    def play_and_train(self, env, path, batch_size=32, n_episode=1000, if_gather_stats=False):
         results = []
+        mean_reward = -np.inf
 
         # First, gather experience
         tqdm_e = tqdm(range(n_episode), desc='Score', leave=True, unit=" episodes")
-        for e in tqdm_e:
+        for episode in tqdm_e:
             # Reset episode
             time, total_reward, done = 0, 0, False
             state = env.reset()
@@ -120,10 +129,14 @@ class DDPG:
             if len(self.buffer) >= batch_size:
                 self.train(batch_size)
 
-            # Gather stats every episode for plotting
-            if if_gather_stats:
+            self.save_weights(path)
+            if episode != 0 and episode % 100 == 0:
+                # Gather stats every episode for plotting
                 mean, stdev = gather_stats(self, env)
-                results.append([e, mean, stdev])
+                if mean > mean_reward:
+                    mean_reward = mean
+                if if_gather_stats:
+                    results.append([episode, mean, stdev])
 
             # Display score
             tqdm_e.set_description("Score: " + str(total_reward))

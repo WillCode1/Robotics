@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.initializers import RandomUniform
+K = keras.backend
 
 
 class Critic:
@@ -42,37 +43,25 @@ class Critic:
         x = keras.layers.Dense(30, activation="selu")(x)
         x = keras.layers.Dense(10, activation="selu")(x)
 
-        q_values = keras.layers.Dense(self.action_dim, kernel_initializer=RandomUniform())(x)
+        state_values = keras.layers.Dense(1)(x)
+        raw_advantages = keras.layers.Dense(self.action_dim, kernel_initializer=RandomUniform())(x)
+        advantages = raw_advantages - K.mean(raw_advantages, axis=1, keepdims=True)
+        q_values = state_values + advantages
+
         model = keras.Model(inputs=[input_1, input_2, input_3, action], outputs=[q_values])
         return model
-
-    def action_gradients(self, states, actions):
-        """ Compute Q-value gradients w.r.t. states and policy-actions
-        """
-        with tf.GradientTape() as tape:
-            critic_target = self.model(states + (actions,))
-        action_gradients = tape.gradient(critic_target, actions)
-        return action_gradients
 
     def target_predict(self, inp):
         """ Predict Q-Values using the target network
         """
         states, actions = inp
-        return self.target_model.predict(states + (actions,))
-
-    def train_on_batch(self, states, actions, critic_target):
-        """ Train the critic network on batch of sampled experience
-        """
-        return self.model.train_on_batch(states + (actions,), critic_target)
+        return self.target_model.predict([*states, actions])
 
     def transfer_weights(self):
         """ Transfer model weights to target model with a factor of Tau
         """
-        weights = self.model.get_weights()
-        target_weights = self.target_model.get_weights()
-        for i in range(len(weights)):
-            target_weights[i] = self.tau * weights[i] + (1 - self.tau) * target_weights[i]
-        self.target_model.set_weights(target_weights)
+        for model_weight, target_weight in zip(self.model.weights, self.target_model.weights):
+            target_weight.assign(self.tau * model_weight + (1 - self.tau) * target_weight)
 
     def save(self, path):
         self.model.save_weights(path + '_critic.h5')
