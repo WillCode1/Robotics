@@ -29,7 +29,7 @@ if __name__ == "__main__":
     tau = 0.01
 
     soft_update = False
-    load_model = True
+    load_model = False
     debug = False
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 

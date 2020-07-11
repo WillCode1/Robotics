@@ -77,6 +77,7 @@ class CarEnv:
         self.angular_velocity = None
 
         self.global_route = None
+        self.last_waypoint = None
 
         random.seed(42)
         np.random.seed(42)
@@ -93,8 +94,6 @@ class CarEnv:
         self.actor_list = []
         self.collision_hist = []
         self.lane_invasion = []
-        self.acceleration = None
-        self.angular_velocity = None
 
     def init_vehicle(self):
         vehicle_transform = None
@@ -149,8 +148,9 @@ class CarEnv:
         self.lane_invasion = lane.crossed_lane_markings
 
     def imu_callback(self, imu):
-        self.acceleration = np.array([imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z])
-        self.angular_velocity = np.array([imu.gyroscope.x, imu.gyroscope.y, imu.gyroscope.z])
+        # print('acceleration: x={0}, y={1}, z={2}'.
+        #       format(imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z))
+        print('gyroscope: x={0}, y={1}, z={2}'.format(imu.gyroscope.x, imu.gyroscope.y, imu.gyroscope.z))
 
     def reset(self):
         self.clear_env()
@@ -209,7 +209,7 @@ class CarEnv:
         """
         # Add IMU sensor to vehicle.
         imu_bp = self.blueprint_library.find('sensor.other.imu')
-        # imu_bp.set_attribute("sensor_tick", str(3.0))
+        imu_bp.set_attribute("sensor_tick", str(3.0))
         imu = self.world.spawn_actor(imu_bp, other_transform, attach_to=self.vehicle,
                                      attachment_type=carla.AttachmentType.Rigid)
         imu.listen(lambda imu: self.imu_callback(imu))
@@ -247,8 +247,8 @@ class CarEnv:
         interval_time = time.time() - self.episode_start
 
         current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
-        # distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
-        # self.last_waypoint = current_waypoint
+        distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
+        self.last_waypoint = current_waypoint
 
         if self.debug:
             print("kmh = {}!".format(kmh))
@@ -266,19 +266,19 @@ class CarEnv:
 
         if len(self.collision_hist) != 0:
             done = True
-            reward -= -500
+            reward -= -1000
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
-            reward -= -300
+            reward -= -500
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
                     done = True
-                    reward -= 50
+                    reward -= 300
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
                     done = True
-                    reward -= 100
+                    reward -= 500
             self.lane_invasion = []
 
         if self.run_seconds_per_episode is not None and interval_time > self.run_seconds_per_episode:
