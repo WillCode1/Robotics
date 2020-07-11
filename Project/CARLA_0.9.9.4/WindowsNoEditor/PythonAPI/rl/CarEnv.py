@@ -259,6 +259,13 @@ class CarEnv:
             2. 超出车道线 done
             3. 5秒时间没有走过8米，怀疑在转圈
         '''
+        if velocity[0] >= 10:
+            done = False
+            reward = 10
+        else:
+            done = False
+            reward = velocity[0]
+
         if len(self.collision_hist) != 0:
             done = True
             reward = -100
@@ -267,23 +274,14 @@ class CarEnv:
             reward = -100
         elif int(interval_time) != 0 and int(interval_time) % 5 == 0 and distance < 8:
             done = True
-            reward = -30
-        elif int(kmh) >= 40:
-            done = False
-            reward = 2
-        elif int(kmh) > 0:
-            done = False
-            reward = 1
-        else:
-            done = False
-            reward = 0
+            reward = -50
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
-                    reward -= 10
-                elif lane.type == carla.LaneMarkingType.SolidSolid:
                     reward -= 30
+                elif lane.type == carla.LaneMarkingType.SolidSolid:
+                    reward -= 50
             self.lane_invasion = []
 
         if self.run_seconds_per_episode is not None and interval_time > self.run_seconds_per_episode:
