@@ -36,8 +36,8 @@ if __name__ == "__main__":
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=50,
                  no_rendering_mode=False, debug=debug)
 
-    # ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)
-    # ae.unsupervised_pre_training(env)
+    ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)
+    ae.unsupervised_pre_training(env, batch_size=8)
 
     algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', soft_update=soft_update,
                 buffer_size=5000, act_range=1.0, lr=lr, tau=tau)

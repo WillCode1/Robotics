@@ -108,7 +108,6 @@ class CarEnv:
                 loop = True
 
         self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
-        # vehicle.set_autopilot(True)
         self.actor_list.append(self.vehicle)
         return vehicle_transform
 
@@ -239,7 +238,9 @@ class CarEnv:
         action = action.astype(np.float64)
         throttle_brake, steer = action
 
-        if throttle_brake >= 0:
+        if throttle_brake == 10 and steer == 10:
+            self.vehicle.set_autopilot(True)
+        elif throttle_brake >= 0:
             self.vehicle.apply_control(carla.VehicleControl(throttle=throttle_brake, steer=steer))
         else:
             self.vehicle.apply_control(carla.VehicleControl(brake=-throttle_brake, steer=steer))

@@ -41,7 +41,7 @@ class AutoEncoder:
         # print(auto_encoder.summary())
         return auto_encoder, encoder
 
-    def unsupervised_pre_training(self, env, batch_size=128, n_epochs=1000, time_delta=30):
+    def unsupervised_pre_training(self, env, batch_size=32, n_epochs=1000, time_delta=30):
         algo = DDPG(act_dim=self.act_dim, state_dim=self.state_dim, model_path=f'models/',
                     buffer_size=1, act_range=1.0)
         algo.actor.load_weights(f'models/')
@@ -49,21 +49,16 @@ class AutoEncoder:
         sem_auto_encoder, sem_encoder = self.create_auto_encoder(self.state_dim[0])
         depth_auto_encoder, depth_encoder = self.create_auto_encoder(self.state_dim[0])
 
-        sem_image = []
-        depth_image = []
-
         for epoch in range(n_epochs):
-            sem_image.clear()
-            depth_image.clear()
+            sem_image = []
+            depth_image = []
 
             while len(sem_image) < batch_size:
                 time, done = 0, False
                 state = env.reset()
-                noise = OrnsteinUhlenbeckProcess(size=self.act_dim)
 
                 while not done:
-                    action = algo.policy_action(state)
-                    action = np.clip(action + noise.generate(time), -self.act_range, self.act_range)
+                    action = np.array([10, 10])
                     new_state, _, done, _ = env.step(action)
                     if time % time_delta == 0:
                         sem, depth, _ = new_state
@@ -71,7 +66,6 @@ class AutoEncoder:
                         depth_image.append(depth)
                         if len(sem_image) == batch_size:
                             break
-                    state = new_state
                     time += 1
 
             sem_image = np.array(sem_image)
@@ -90,7 +84,7 @@ class AutoEncoder:
             for epoch in range(3):
                 sem_loss = sem_auto_encoder.train_on_batch(sem_image, sem_image)
                 depth_loss = depth_auto_encoder.train_on_batch(depth_image, depth_image)
-            print("sem_loss: {}, depth_loss: {}".format(sem_loss, depth_loss))
+                print("sem_loss: {}, depth_loss: {}".format(sem_loss, depth_loss))
 
             sem_encoder.save_weights(self.model_path + 'sem_encoder.h5')
             depth_encoder.save_weights(self.model_path + 'depth_encoder.h5')
