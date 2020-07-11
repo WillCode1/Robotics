@@ -77,7 +77,6 @@ class CarEnv:
         self.angular_velocity = None
 
         self.global_route = None
-        self.last_waypoint = None
 
         random.seed(42)
         np.random.seed(42)
@@ -248,8 +247,8 @@ class CarEnv:
         interval_time = time.time() - self.episode_start
 
         current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
-        distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
-        self.last_waypoint = current_waypoint
+        # distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
+        # self.last_waypoint = current_waypoint
 
         if self.debug:
             print("kmh = {}!".format(kmh))
