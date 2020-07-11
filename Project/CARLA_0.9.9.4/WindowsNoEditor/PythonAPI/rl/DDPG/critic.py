@@ -71,6 +71,7 @@ class Critic:
 
     def load_weights(self, path):
         self.model.load_weights(path + '_critic.h5')
+        self.target_model.load_weights(path + '_critic.h5')
 
 
 if __name__ == "__main__":

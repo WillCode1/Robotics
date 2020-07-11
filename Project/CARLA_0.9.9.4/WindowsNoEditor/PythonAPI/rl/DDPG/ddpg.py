@@ -24,6 +24,11 @@ class DDPG:
         self.buffer_size = buffer_size
 
         self.model_path = model_path
+        self.actor = Actor(self.state_dim, self.act_dim, self.act_range, 0.1 * self.lr, self.tau,
+                           DDPG.create_conv2d_model)
+        self.critic = Critic(self.state_dim, self.act_dim, self.lr, self.tau, DDPG.create_conv2d_model)
+        # self.buffer = MemoryBuffer(buffer_size)
+        self.buffer = deque(maxlen=self.buffer_size)
 
     @staticmethod
     def create_conv2d_model(shape):
@@ -36,62 +41,6 @@ class DDPG:
         model = keras.Model(inputs=[inp], outputs=[output])
         # print(model.summary())
         return model
-
-    def create_auto_encoder(self):
-        sem_camera, depth_camera, _ = self.state_dim
-
-        sem_encoder = self.create_conv2d_model(sem_camera)
-        sem_decoder = keras.models.Sequential([
-            keras.layers.Conv2DTranspose(64, kernel_size=3, strides=4, padding="valid", activation="selu"),
-            keras.layers.Conv2DTranspose(32, kernel_size=3, strides=2, padding="same", activation="selu"),
-            keras.layers.Conv2DTranspose(3, kernel_size=3, strides=2, padding="same", activation="sigmoid"),
-            keras.layers.Reshape(target_shape=sem_camera)
-        ])
-        sem_ae = keras.models.Sequential([sem_encoder, sem_decoder])
-        # print(sem_ae.summary())
-
-        depth_encoder = self.create_conv2d_model(depth_camera)
-        depth_decoder = keras.models.Sequential([
-            keras.layers.Conv2DTranspose(64, kernel_size=3, strides=4, padding="valid", activation="selu"),
-            keras.layers.Conv2DTranspose(32, kernel_size=3, strides=2, padding="same", activation="selu"),
-            keras.layers.Conv2DTranspose(3, kernel_size=3, strides=2, padding="same", activation="sigmoid"),
-            keras.layers.Reshape(target_shape=sem_camera),
-            keras.layers.Lambda(lambda image: image * 255)
-        ])
-        depth_ae = keras.models.Sequential([depth_encoder, depth_decoder])
-        return sem_ae, depth_ae
-
-    def unsupervised_pre_training(self, env, image_num=10000):
-        sem_image = []
-        # depth_image = deque(maxlen=image_num)
-
-        while len(sem_image) < image_num:
-            time, done = 0, False
-            state = env.reset()
-            noise = OrnsteinUhlenbeckProcess(size=self.act_dim)
-
-            while not done:
-                action = self.policy_action(state)
-                action = np.clip(action + noise.generate(time), -self.act_range, self.act_range)
-                new_state, _, done, _ = env.step(action)
-                if time % 30 == 0:
-                    sem, _, _ = new_state
-                    sem_image.append(sem)
-                state = new_state
-                time += 1
-
-        sem_image = np.array(sem_image)
-        random.shuffle(sem_image)
-
-    def init_for_train(self, load_model):
-        self.actor = Actor(self.state_dim, self.act_dim, self.act_range, 0.1 * self.lr, self.tau,
-                           DDPG.create_conv2d_model)
-        self.critic = Critic(self.state_dim, self.act_dim, self.lr, self.tau, DDPG.create_conv2d_model)
-        # self.buffer = MemoryBuffer(buffer_size)
-        self.buffer = deque(maxlen=self.buffer_size)
-
-        if load_model:
-            self.load_weights(self.model_path)
 
     def policy_action(self, state):
         """ Use the actor to predict value
@@ -163,7 +112,8 @@ class DDPG:
         self.update_models(states, actions, q_target)
 
     def play_and_train(self, env, batch_size=32, n_episode=1000, load_model=False, if_gather_stats=False):
-        self.init_for_train(load_model)
+        if load_model:
+            self.load_weights(self.model_path)
 
         results = []
         mean_reward = -np.inf

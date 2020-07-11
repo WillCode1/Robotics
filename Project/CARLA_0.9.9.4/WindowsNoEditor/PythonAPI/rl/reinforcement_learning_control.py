@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from rl.CarEnv import CarEnv
 from rl.DDPG.ddpg import DDPG
+from rl.DDPG.AutoEncoder import AutoEncoder
 
 
 if __name__ == "__main__":
@@ -28,13 +29,15 @@ if __name__ == "__main__":
     tau = 0.01
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
-    algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/',
-                buffer_size=5000, act_range=1.0, lr=lr, tau=tau)
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=50,
                  no_rendering_mode=False)
 
-    algo.unsupervised_pre_training(env)
-    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES)
+    ae = AutoEncoder()
+    ae.unsupervised_pre_training(env)
+
+    algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/',
+                buffer_size=5000, act_range=1.0, lr=lr, tau=tau)
+    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES, load_model=False)
 
     # Export results to CSV
     df = pd.DataFrame(np.array(stats))
