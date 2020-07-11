@@ -28,11 +28,11 @@ class Actor:
         """
         sem_camera, depth_camera, velocity = self.state_dim
         sem_model = self.create_conv2d_model(sem_camera)
-        # for layer in sem_model.layers:
-        #     layer.trainable = False
+        for layer in sem_model.layers:
+            layer.trainable = False
         depth_model = self.create_conv2d_model(depth_camera)
-        # for layer in depth_model.layers:
-        #     layer.trainable = False
+        for layer in depth_model.layers:
+            layer.trainable = False
 
         velocity = keras.layers.Input(shape=[velocity])
 

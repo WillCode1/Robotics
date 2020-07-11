@@ -4,7 +4,6 @@ import tensorflow as tf
 from tensorflow import keras
 import random
 from rl.CarEnv import CarEnv
-from rl.DDPG.ddpg import DDPG
 
 
 class AutoEncoder:
@@ -37,16 +36,12 @@ class AutoEncoder:
             keras.layers.Lambda(lambda image: image * 255)
         ])
         auto_encoder = keras.models.Sequential([encoder, decoder])
-        optimizer = keras.optimizers.Adam(lr=0.01, clipvalue=1.0)
-        auto_encoder.compile(loss='mse', optimizer=optimizer)
+        optimizer = keras.optimizers.Adam(lr=0.001, clipvalue=1.0)
+        auto_encoder.compile(loss=keras.losses.Huber(), optimizer=optimizer)
         # print(auto_encoder.summary())
         return auto_encoder, encoder
 
     def unsupervised_pre_training(self, env, batch_size=32, n_epochs=1000, time_delta=30):
-        algo = DDPG(act_dim=self.act_dim, state_dim=self.state_dim, model_path=f'models/',
-                    buffer_size=1, act_range=1.0)
-        algo.actor.load_weights(f'models/')
-
         sem_auto_encoder, sem_encoder = self.create_auto_encoder(self.state_dim[0])
         depth_auto_encoder, depth_encoder = self.create_auto_encoder(self.state_dim[0])
 
@@ -103,11 +98,6 @@ if __name__ == "__main__":
     state_dim = [image_shape, image_shape, 1]
     action_dim = 2  # [throttle_brake, steer]
 
-    lr = 0.05
-    tau = 0.01
-
-    soft_update = False
-    load_model = False
     debug = False
 
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=50,
