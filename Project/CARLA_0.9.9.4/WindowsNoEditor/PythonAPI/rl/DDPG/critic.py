@@ -8,10 +8,12 @@ K = keras.backend
 class Critic:
     """ Critic for the DDPG Algorithm, Q-Value function approximator
     """
-    def __init__(self, inp_dim, out_dim, lr, tau):
+    def __init__(self, inp_dim, out_dim, lr, tau, create_conv2d_model):
         self.state_dim = inp_dim
         self.action_dim = out_dim
         self.tau = tau
+
+        self.create_conv2d_model = create_conv2d_model
 
         self.model = self.create_model()
         self.target_model = self.create_model()
@@ -25,21 +27,20 @@ class Critic:
         """ Assemble Critic network to predict q-values
         """
         sem_camera, depth_camera, velocity = self.state_dim
-        input_1 = keras.layers.Input(shape=sem_camera, name="sem_camera_input")
-        input_2 = keras.layers.Input(shape=depth_camera, name="depth_camera_input")
-        input_3 = keras.layers.Input(shape=[velocity], name="velocity_input")
-        action = keras.layers.Input(shape=self.action_dim, name="action_input")
+        sem_model = self.create_conv2d_model(sem_camera)
+        for layer in sem_model.layers:
+            layer.trainable = False
+        depth_model = self.create_conv2d_model(depth_camera)
+        for layer in depth_model.layers:
+            layer.trainable = False
 
-        x = keras.layers.concatenate([input_1, input_2])
-        x = keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255)(x)
+        velocity = keras.layers.Input(shape=[velocity])
+        action = keras.layers.Input(shape=self.action_dim)
 
-        x = keras.layers.Conv2D(64, 7, strides=3, activation="relu", padding="same")(x)
-        x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
-        x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
-        x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
-        x = keras.layers.GlobalAvgPool2D()(x)
+        sem = keras.layers.GlobalAvgPool2D()(sem_model.output)
+        depth = keras.layers.GlobalAvgPool2D()(depth_model.output)
 
-        x = keras.layers.concatenate([x, input_3, action])
+        x = keras.layers.concatenate([sem, depth, velocity, action])
         x = keras.layers.Dense(30, activation="selu")(x)
         x = keras.layers.Dense(10, activation="selu")(x)
 
@@ -48,7 +49,9 @@ class Critic:
         advantages = raw_advantages - K.mean(raw_advantages, axis=1, keepdims=True)
         q_values = state_values + advantages
 
-        model = keras.Model(inputs=[input_1, input_2, input_3, action], outputs=[q_values])
+        model = keras.Model(inputs=[sem_model.input, depth_model.input, velocity, action],
+                            outputs=[q_values])
+        # print(model.summary())
         return model
 
     def target_predict(self, inp):
@@ -67,4 +70,17 @@ class Critic:
         self.model.save_weights(path + '_critic.h5')
 
     def load_weights(self, path):
-        self.model.load_weights(path)
+        self.model.load_weights(path + '_critic.h5')
+
+
+if __name__ == "__main__":
+    IM_WIDTH = 400
+    IM_HEIGHT = 400
+    image_shape = (IM_HEIGHT, IM_WIDTH, 3)
+    state_dim = [image_shape, image_shape, 1]
+    action_dim = 2
+    lr = 0.05
+    tau = 0.01
+
+    from rl.DDPG.ddpg import DDPG
+    critic = Critic(state_dim, action_dim, lr, tau, DDPG.create_conv2d_model)

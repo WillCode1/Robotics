@@ -16,21 +16,25 @@ if __name__ == "__main__":
     if not os.path.isdir("./models"):
         os.makedirs("./models")
 
-    IM_WIDTH = 800
-    IM_HEIGHT = 600
+    IM_WIDTH = 400
+    IM_HEIGHT = 400
     batch_size = 8
     EPISODES = 1000
-    run_seconds_per_episode = 50
     image_shape = (IM_HEIGHT, IM_WIDTH, 3)
     state_dim = [image_shape, image_shape, 1]
     action_dim = 2  # [throttle_brake, steer]
+
+    lr = 0.05
+    tau = 0.01
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
-    algo = DDPG(act_dim=action_dim, state_dim=state_dim, act_range=1.0)
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=run_seconds_per_episode,
-                 no_rendering_mode=True)
+    algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/',
+                buffer_size=5000, act_range=1.0, lr=lr, tau=tau)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=50,
+                 no_rendering_mode=False)
 
-    stats = algo.play_and_train(env, path=f'models/', batch_size=batch_size, n_episode=EPISODES)
+    algo.unsupervised_pre_training(env)
+    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES)
 
     # Export results to CSV
     df = pd.DataFrame(np.array(stats))

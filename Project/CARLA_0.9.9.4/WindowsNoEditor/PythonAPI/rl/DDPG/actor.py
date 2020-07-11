@@ -8,11 +8,13 @@ class Actor:
     """ Actor Network for the DDPG Algorithm
     """
 
-    def __init__(self, inp_dim, out_dim, act_range, lr, tau):
+    def __init__(self, inp_dim, out_dim, act_range, lr, tau, create_conv2d_model):
         self.state_dim = inp_dim
         self.action_dim = out_dim
         self.act_range = act_range
         self.tau = tau
+
+        self.create_conv2d_model = create_conv2d_model
 
         self.model = self.create_model()
         self.target_model = self.create_model()
@@ -25,26 +27,25 @@ class Actor:
         exploration, and balance it with Layer Normalization.
         """
         sem_camera, depth_camera, velocity = self.state_dim
-        input_1 = keras.layers.Input(shape=sem_camera, name="sem_camera_input")
-        input_2 = keras.layers.Input(shape=depth_camera, name="depth_camera_input")
-        input_3 = keras.layers.Input(shape=[velocity], name="velocity_input")
+        sem_model = self.create_conv2d_model(sem_camera)
+        for layer in sem_model.layers:
+            layer.trainable = False
+        depth_model = self.create_conv2d_model(depth_camera)
+        for layer in depth_model.layers:
+            layer.trainable = False
 
-        x = keras.layers.concatenate([input_1, input_2])
-        x = keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255)(x)
+        velocity = keras.layers.Input(shape=[velocity])
 
-        x = keras.layers.Conv2D(64, 7, strides=3, activation="relu", padding="same")(x)
-        x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
-        x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
-        x = keras.layers.Conv2D(64, 3, strides=2, activation="relu", padding="same")(x)
-        x = keras.layers.GlobalAvgPool2D()(x)
+        sem = keras.layers.GlobalAvgPool2D()(sem_model.output)
+        depth = keras.layers.GlobalAvgPool2D()(depth_model.output)
 
-        x = keras.layers.concatenate([x, input_3])
+        x = keras.layers.concatenate([sem, depth, velocity])
         x = keras.layers.Dense(30, activation="selu")(x)
         x = keras.layers.Dense(10, activation="selu")(x)
 
         action = keras.layers.Dense(self.action_dim, activation="tanh", kernel_initializer=RandomUniform())(x)
         # action = keras.layers.Lambda(lambda i: i * self.act_range)(action)
-        model = keras.Model(inputs=[input_1, input_2, input_3], outputs=[action])
+        model = keras.Model(inputs=[sem_model.input, depth_model.input, velocity], outputs=[action])
         return model
 
     def predict(self, state):
@@ -67,4 +68,4 @@ class Actor:
         self.model.save_weights(path + '_actor.h5')
 
     def load_weights(self, path):
-        self.model.load_weights(path)
+        self.model.load_weights(path + '_actor.h5')

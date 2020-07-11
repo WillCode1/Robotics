@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import tensorflow as tf
+from tensorflow import keras
 from tqdm import tqdm
 from rl.DDPG.actor import Actor
 from rl.DDPG.critic import Critic
@@ -12,23 +13,85 @@ from collections import deque
 
 
 class DDPG:
-    """ Deep Deterministic Policy Gradient (DDPG) Helper Class
-    """
-
-    def __init__(self, act_dim, state_dim, act_range, k=1, buffer_size=5000, gamma=0.99, lr=0.00005, tau=0.001):
-        """ Initialization
-        """
-        # Environment and A2C parameters
+    def __init__(self, act_dim, state_dim, act_range, model_path, k=1,
+                 buffer_size=5000, gamma=0.99, lr=0.00005, tau=0.001):
         self.act_dim = act_dim
         self.act_range = act_range
         self.state_dim = state_dim
         self.gamma = gamma
         self.lr = lr
-        # Create actor and critic networks
-        self.actor = Actor(self.state_dim, act_dim, act_range, 0.1 * lr, tau)
-        self.critic = Critic(self.state_dim, act_dim, lr, tau)
+        self.tau = tau
+        self.buffer_size = buffer_size
+
+        self.model_path = model_path
+
+    @staticmethod
+    def create_conv2d_model(shape):
+        inp = keras.layers.Input(shape=shape)
+        x = keras.layers.Lambda(lambda image: tf.cast(image, np.float32) / 255)(inp)
+        x = keras.layers.SeparableConv2D(64, 7, strides=2, activation="selu", padding="same")(x)
+        x = keras.layers.SeparableConv2D(128, 3, strides=2, activation="selu", padding="same")(x)
+        x = keras.layers.SeparableConv2D(256, 3, strides=2, activation="selu", padding="same")(x)
+        output = keras.layers.SeparableConv2D(128, 3, strides=2, activation="selu", padding="same")(x)
+        model = keras.Model(inputs=[inp], outputs=[output])
+        # print(model.summary())
+        return model
+
+    def create_auto_encoder(self):
+        sem_camera, depth_camera, _ = self.state_dim
+
+        sem_encoder = self.create_conv2d_model(sem_camera)
+        sem_decoder = keras.models.Sequential([
+            keras.layers.Conv2DTranspose(64, kernel_size=3, strides=4, padding="valid", activation="selu"),
+            keras.layers.Conv2DTranspose(32, kernel_size=3, strides=2, padding="same", activation="selu"),
+            keras.layers.Conv2DTranspose(3, kernel_size=3, strides=2, padding="same", activation="sigmoid"),
+            keras.layers.Reshape(target_shape=sem_camera)
+        ])
+        sem_ae = keras.models.Sequential([sem_encoder, sem_decoder])
+        # print(sem_ae.summary())
+
+        depth_encoder = self.create_conv2d_model(depth_camera)
+        depth_decoder = keras.models.Sequential([
+            keras.layers.Conv2DTranspose(64, kernel_size=3, strides=4, padding="valid", activation="selu"),
+            keras.layers.Conv2DTranspose(32, kernel_size=3, strides=2, padding="same", activation="selu"),
+            keras.layers.Conv2DTranspose(3, kernel_size=3, strides=2, padding="same", activation="sigmoid"),
+            keras.layers.Reshape(target_shape=sem_camera),
+            keras.layers.Lambda(lambda image: image * 255)
+        ])
+        depth_ae = keras.models.Sequential([depth_encoder, depth_decoder])
+        return sem_ae, depth_ae
+
+    def unsupervised_pre_training(self, env, image_num=10000):
+        sem_image = []
+        # depth_image = deque(maxlen=image_num)
+
+        while len(sem_image) < image_num:
+            time, done = 0, False
+            state = env.reset()
+            noise = OrnsteinUhlenbeckProcess(size=self.act_dim)
+
+            while not done:
+                action = self.policy_action(state)
+                action = np.clip(action + noise.generate(time), -self.act_range, self.act_range)
+                new_state, _, done, _ = env.step(action)
+                if time % 30 == 0:
+                    sem, _, _ = new_state
+                    sem_image.append(sem)
+                state = new_state
+                time += 1
+
+        sem_image = np.array(sem_image)
+        random.shuffle(sem_image)
+
+    def init_for_train(self, load_model):
+        self.actor = Actor(self.state_dim, self.act_dim, self.act_range, 0.1 * self.lr, self.tau,
+                           DDPG.create_conv2d_model)
+        self.critic = Critic(self.state_dim, self.act_dim, self.lr, self.tau, DDPG.create_conv2d_model)
         # self.buffer = MemoryBuffer(buffer_size)
-        self.buffer = deque(maxlen=buffer_size)
+        self.buffer = deque(maxlen=self.buffer_size)
+
+        if load_model:
+            self.load_weights(self.model_path)
 
     def policy_action(self, state):
         """ Use the actor to predict value
@@ -99,7 +162,9 @@ class DDPG:
         # Train both networks on sampled batch, update target networks
         self.update_models(states, actions, q_target)
 
-    def play_and_train(self, env, path, batch_size=32, n_episode=1000, if_gather_stats=False):
+    def play_and_train(self, env, batch_size=32, n_episode=1000, load_model=False, if_gather_stats=False):
+        self.init_for_train(load_model)
+
         results = []
         mean_reward = -np.inf
 
@@ -127,10 +192,11 @@ class DDPG:
             if len(self.buffer) >= batch_size:
                 self.train(batch_size)
 
-            self.save_weights(path)
-            if episode != 0 and episode % 100 == 0:
+            self.save_weights(self.model_path)
+            if episode != 0 and episode % 20 == 0:
                 # Gather stats every episode for plotting
                 mean, stdev = gather_stats(self, env)
+                print('episode {0}: mean={1}'.format(episode, mean))
                 if mean > mean_reward:
                     mean_reward = mean
                 if if_gather_stats:
@@ -143,18 +209,18 @@ class DDPG:
         return results
 
     def save_weights(self, path):
-        path += '_LR_{}'.format(self.lr)
+        # path += '_LR_{}'.format(self.lr)
         self.actor.save(path)
         self.critic.save(path)
 
-    def load_weights(self, path_actor, path_critic):
-        self.critic.load_weights(path_critic)
-        self.actor.load_weights(path_actor)
+    def load_weights(self, path):
+        self.critic.load_weights(path)
+        self.actor.load_weights(path)
 
 
 if __name__ == "__main__":
-    IM_WIDTH = 800
-    IM_HEIGHT = 600
+    IM_WIDTH = 400
+    IM_HEIGHT = 400
     image_shape = (IM_HEIGHT, IM_WIDTH, 3)
     state_dim = [image_shape, image_shape, 1]
     action_dim = 2  # [throttle_brake, steer]
