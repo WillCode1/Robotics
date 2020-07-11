@@ -148,9 +148,10 @@ class CarEnv:
         self.lane_invasion = lane.crossed_lane_markings
 
     def imu_callback(self, imu):
-        # print('acceleration: x={0}, y={1}, z={2}'.
-        #       format(imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z))
-        print('gyroscope: x={0}, y={1}, z={2}'.format(imu.gyroscope.x, imu.gyroscope.y, imu.gyroscope.z))
+        if self.debug:
+            # print('acceleration: x={0}, y={1}, z={2}'.
+            #       format(imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z))
+            print('gyroscope: x={0}, y={1}, z={2}'.format(imu.gyroscope.x, imu.gyroscope.y, imu.gyroscope.z))
 
     def reset(self):
         self.clear_env()
