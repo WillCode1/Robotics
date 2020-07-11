@@ -47,7 +47,7 @@ Instance Variables
 
 class CarEnv:
     def __init__(self, img_height, img_width, show_rgb_camera=False, show_sem_camera=False,
-                 show_depth_camera=False, run_seconds_per_episode=None, no_rendering_mode=True):
+                 show_depth_camera=False, run_seconds_per_episode=None, no_rendering_mode=True, debug=False):
         self.show_rgb_camera = show_rgb_camera
         self.show_sem_camera = show_sem_camera
         self.show_depth_camera = show_depth_camera
@@ -60,6 +60,8 @@ class CarEnv:
         self.client.set_timeout(2.0)
         self.world = self.client.get_world()
         self.map = self.world.get_map()
+
+        self.debug = debug
         settings = self.world.get_settings()
         settings.no_rendering_mode = no_rendering_mode
         self.world.apply_settings(settings)
@@ -249,8 +251,9 @@ class CarEnv:
         distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
         self.last_waypoint = current_waypoint
 
-        if kmh == 0:
-            print("kmh = 0!")
+        if self.debug:
+            print("kmh = {}!".format(kmh))
+
         '''
             1. 碰撞 done
             2. 超出车道线 done

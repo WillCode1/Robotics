@@ -27,17 +27,21 @@ if __name__ == "__main__":
 
     lr = 0.05
     tau = 0.01
+
+    soft_update = False
+    load_model = True
+    debug = True
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=50,
-                 no_rendering_mode=True)
+                 no_rendering_mode=True, debug=debug)
 
     # ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)
     # ae.unsupervised_pre_training(env)
 
-    algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', soft_update=False,
+    algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', soft_update=soft_update,
                 buffer_size=5000, act_range=1.0, lr=lr, tau=tau)
-    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES, load_model=False)
+    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model)
 
     # Export results to CSV
     df = pd.DataFrame(np.array(stats))
