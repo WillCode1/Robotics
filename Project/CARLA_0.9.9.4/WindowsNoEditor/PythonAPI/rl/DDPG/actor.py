@@ -42,9 +42,7 @@ class Actor:
         x = keras.layers.concatenate([sem, depth, velocity])
         x = keras.layers.Dense(30, activation="selu")(x)
         x = keras.layers.Dense(10, activation="selu")(x)
-        throttle_brake = keras.layers.Dense(1, activation="tanh", kernel_initializer=keras.initializers.Ones())(x)
-        steer = keras.layers.Dense(1, activation="tanh", kernel_initializer=RandomUniform())(x)
-        action = keras.layers.concatenate([throttle_brake, steer])
+        action = keras.layers.Dense(self.action_dim, activation="tanh", kernel_initializer=RandomUniform())(x)
         # action = keras.layers.Lambda(lambda i: i * self.act_range)(action)
         model = keras.Model(inputs=[sem_model.input, depth_model.input, velocity], outputs=[action])
         return model

@@ -257,7 +257,6 @@ class CarEnv:
         '''
             1. 碰撞 done
             2. 超出车道线 done
-            3. 5秒时间没有走过8米，怀疑在转圈
         '''
         if velocity[0] >= 10:
             done = False
@@ -272,15 +271,14 @@ class CarEnv:
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
             reward -= -100
-        elif int(interval_time) != 0 and int(interval_time) % 5 == 0 and distance < 8:
-            done = True
-            reward -= -50
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
+                    done = True
                     reward -= 30
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
+                    done = True
                     reward -= 50
             self.lane_invasion = []
 
