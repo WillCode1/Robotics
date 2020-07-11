@@ -139,9 +139,8 @@ class DDPG:
                 state = new_state
                 total_reward += reward
                 time += 1
-
-            if len(self.buffer) >= batch_size:
-                self.train(batch_size)
+                if len(self.buffer) >= batch_size:
+                    self.train(batch_size)
 
             self.save_weights(self.model_path)
             if episode != 0 and episode % 20 == 0:
