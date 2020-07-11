@@ -268,13 +268,13 @@ class CarEnv:
 
         if len(self.collision_hist) != 0:
             done = True
-            reward = -100
+            reward -= -100
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
-            reward = -100
+            reward -= -100
         elif int(interval_time) != 0 and int(interval_time) % 5 == 0 and distance < 8:
             done = True
-            reward = -50
+            reward -= -50
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
