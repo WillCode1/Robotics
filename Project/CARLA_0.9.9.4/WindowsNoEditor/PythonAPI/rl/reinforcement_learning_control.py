@@ -30,10 +30,10 @@ if __name__ == "__main__":
 
     soft_update = False
     load_model = False
-    debug = True
+    debug = False
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=50,
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=50,
                  no_rendering_mode=False, debug=debug)
 
     # ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)

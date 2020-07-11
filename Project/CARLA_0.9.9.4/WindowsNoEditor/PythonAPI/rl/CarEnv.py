@@ -251,8 +251,8 @@ class CarEnv:
         distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
         self.last_waypoint = current_waypoint
 
-        if self.debug:
-            print("kmh = {}!".format(kmh))
+        # if self.debug:
+        #     print("kmh = {}!".format(kmh))
 
         '''
             1. 碰撞 done
