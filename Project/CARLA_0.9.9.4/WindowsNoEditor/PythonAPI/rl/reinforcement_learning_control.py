@@ -30,10 +30,10 @@ if __name__ == "__main__":
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=50,
-                 no_rendering_mode=False)
+                 no_rendering_mode=True)
 
-    ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)
-    ae.unsupervised_pre_training(env)
+    # ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)
+    # ae.unsupervised_pre_training(env)
 
     algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/',
                 buffer_size=5000, act_range=1.0, lr=lr, tau=tau)

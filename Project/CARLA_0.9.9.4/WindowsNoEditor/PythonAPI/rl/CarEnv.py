@@ -249,6 +249,8 @@ class CarEnv:
         distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
         self.last_waypoint = current_waypoint
 
+        if kmh == 0:
+            print("kmh = 0!")
         '''
             1. 碰撞 done
             2. 超出车道线 done
@@ -260,15 +262,18 @@ class CarEnv:
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
             reward = -100
-        elif int(interval_time) != 0 and int(interval_time) % 5 == 0 and distance >= 20:
+        elif int(kmh) >= 40:
             done = False
-            reward = 10
+            reward = 2
         elif int(interval_time) != 0 and int(interval_time) % 5 == 0 and distance < 8:
             done = False
             reward = -30
-        else:
+        elif int(kmh) > 0:
             done = False
             reward = 1
+        else:
+            done = False
+            reward = 0
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
