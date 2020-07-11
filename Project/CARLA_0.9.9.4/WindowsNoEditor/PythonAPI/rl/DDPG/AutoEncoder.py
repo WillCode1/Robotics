@@ -1,9 +1,10 @@
+import os
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 import random
+from rl.CarEnv import CarEnv
 from rl.DDPG.ddpg import DDPG
-from utils.networks import OrnsteinUhlenbeckProcess
 
 
 class AutoEncoder:
@@ -88,3 +89,29 @@ class AutoEncoder:
 
             sem_encoder.save_weights(self.model_path + 'sem_encoder.h5')
             depth_encoder.save_weights(self.model_path + 'depth_encoder.h5')
+
+
+if __name__ == "__main__":
+    if not os.path.isdir("./models"):
+        os.makedirs("./models")
+
+    IM_WIDTH = 400
+    IM_HEIGHT = 400
+    batch_size = 8
+    EPISODES = 1000
+    image_shape = (IM_HEIGHT, IM_WIDTH, 3)
+    state_dim = [image_shape, image_shape, 1]
+    action_dim = 2  # [throttle_brake, steer]
+
+    lr = 0.05
+    tau = 0.01
+
+    soft_update = False
+    load_model = False
+    debug = False
+
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=50,
+                 no_rendering_mode=True, debug=debug)
+
+    ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)
+    ae.unsupervised_pre_training(env, batch_size=batch_size)
