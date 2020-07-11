@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', soft_update=False,
                 buffer_size=5000, act_range=1.0, lr=lr, tau=tau)
-    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES, load_model=True)
+    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES, load_model=False)
 
     # Export results to CSV
     df = pd.DataFrame(np.array(stats))

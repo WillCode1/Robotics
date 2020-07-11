@@ -278,9 +278,9 @@ class CarEnv:
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
-                    done = True
+                    reward -= 10
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
-                    done = True
+                    reward -= 30
             self.lane_invasion = []
 
         if self.run_seconds_per_episode is not None and interval_time > self.run_seconds_per_episode:
