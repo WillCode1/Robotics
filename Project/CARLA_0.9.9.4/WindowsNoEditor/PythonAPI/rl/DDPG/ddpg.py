@@ -13,7 +13,7 @@ from collections import deque
 
 
 class DDPG:
-    def __init__(self, act_dim, state_dim, act_range, model_path, k=1,
+    def __init__(self, act_dim, state_dim, act_range, model_path, k=1, soft_update=True,
                  buffer_size=5000, gamma=0.99, lr=0.00005, tau=0.001):
         self.act_dim = act_dim
         self.act_range = act_range
@@ -21,6 +21,7 @@ class DDPG:
         self.gamma = gamma
         self.lr = lr
         self.tau = tau
+        self.update_type = soft_update
         self.buffer_size = buffer_size
 
         self.model_path = model_path
@@ -98,8 +99,8 @@ class DDPG:
         params_grad = tape.gradient(actions, self.actor.model.trainable_variables, -action_grads)
         self.actor.optimizer.apply_gradients(zip(params_grad, self.actor.model.trainable_variables))
 
-        self.actor.transfer_weights()
-        self.critic.transfer_weights()
+        self.actor.transfer_weights(self.update_type)
+        self.critic.transfer_weights(self.update_type)
 
     def train(self, batch_size):
         # Sample experience from buffer

@@ -58,11 +58,12 @@ class Actor:
         """
         return self.target_model.predict(inp)
 
-    def transfer_weights(self):
-        """ Transfer model weights to target model with a factor of Tau
-        """
-        for model_weight, target_weight in zip(self.model.weights, self.target_model.weights):
-            target_weight.assign(self.tau * model_weight + (1 - self.tau) * target_weight)
+    def transfer_weights(self, soft_update=True):
+        if soft_update:
+            for model_weight, target_weight in zip(self.model.weights, self.target_model.weights):
+                target_weight.assign(self.tau * model_weight + (1 - self.tau) * target_weight)
+        else:
+            self.target_model.set_weights(self.model.get_weights())
 
     def save(self, path):
         self.model.save_weights(path + '_actor.h5')
