@@ -22,6 +22,7 @@ from carla_api.misc import distance_vehicle
 from carla_api.misc import GlobalRouteAgent
 from carla_api.misc import draw_waypoints
 from carla_api.misc import spawn_car
+from carla_api.misc import compute_cos_about_waypoint
 
 '''
 carla.VehicleControl
@@ -77,8 +78,6 @@ class CarEnv:
         self.angular_velocity = None
 
         self.global_route = None
-        self.compass = None
-        self.last_waypoint = None
 
         random.seed(42)
         np.random.seed(42)
@@ -148,7 +147,6 @@ class CarEnv:
         self.lane_invasion = lane.crossed_lane_markings
 
     def imu_callback(self, imu):
-        self.compass = imu.compass
         if self.debug:
             # print('acceleration: x={0}, y={1}, z={2}'.
             #       format(imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z))
@@ -158,7 +156,6 @@ class CarEnv:
         self.clear_env()
 
         vehicle_transform = self.init_vehicle()
-        self.last_waypoint = self.map.get_waypoint(self.vehicle.get_location())
         camera_transform = carla.Transform(carla.Location(x=2, y=0, z=1), carla.Rotation(0, 180, 0))
         other_transform = carla.Transform(carla.Location(0, 0, 0), carla.Rotation(0, 0, 0))
 
@@ -242,29 +239,28 @@ class CarEnv:
         action = action.astype(np.float64)
         throttle_brake, steer = action
 
-        if throttle_brake == 10 and steer == 10:
-            self.vehicle.set_autopilot(True)
-        elif throttle_brake >= 0:
+        if throttle_brake >= 0:
             self.vehicle.apply_control(carla.VehicleControl(throttle=throttle_brake, steer=steer))
         else:
             self.vehicle.apply_control(carla.VehicleControl(brake=-throttle_brake, steer=steer))
 
-        velocity, kmh = get_speed(self.vehicle)
+        # self.vehicle.set_autopilot(True)
+
+        velocity = get_speed(self.vehicle)
         interval_time = time.time() - self.episode_start
 
+        # self.vehicle.get_acceleration()
+        # self.vehicle.get_angular_velocity()
         current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
-        distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
-        self.last_waypoint = current_waypoint
+        cos = compute_cos_about_waypoint(current_waypoint, self.vehicle)
+        kmh = velocity[0] * cos * 3.6
 
-        print(current_waypoint.transform.rotation)
-        print(self.compass)
-
-        if velocity[0] >= 10:
+        if kmh >= 40:
             done = False
             reward = 10
         else:
             done = False
-            reward = velocity[0]
+            reward = kmh / 4
 
         if len(self.collision_hist) != 0:
             done = True
@@ -272,9 +268,6 @@ class CarEnv:
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
             reward -= -100
-        # elif interval_time > 5 and distance < 6:
-        #     done = True
-        #     reward -= 5000
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
@@ -301,6 +294,6 @@ if __name__ == "__main__":
 
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, no_rendering_mode=False)
     old_state = env.reset(), 0
-    action = (0, 0)
+    action = np.array([0, 0])
     while True:
         new_state, reward, done, _ = env.step(action)

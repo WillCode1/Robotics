@@ -83,7 +83,7 @@ def get_speed(vehicle):
     vel = vehicle.get_velocity()
     velocity = math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
 
-    return np.array([velocity]), 3.6 * velocity
+    return np.array([velocity])
 
 
 def is_within_distance_ahead(target_transform, current_transform, max_distance):
@@ -142,6 +142,26 @@ def is_within_distance(target_location, current_location, orientation, max_dista
     d_angle = math.degrees(math.acos(np.clip(np.dot(forward_vector, target_vector) / norm_target, -1., 1.)))
 
     return d_angle_th_low < d_angle < d_angle_th_up
+
+
+def compute_cos_about_waypoint(waypoint, vehicle):
+    """
+    Compute relative angle and distance between a target_location and a current_location
+
+        :param way_vector: Orientation of the way
+        :param vehicle_compass: Orientation with regard to the North ((0.0, -1.0, 0.0) in Unreal Engine) in radians.
+        :return: a cos angle between both objects
+    """
+    waypoint_vector = waypoint.transform.rotation.get_forward_vector()
+    waypoint_vector = np.array([waypoint_vector.x, waypoint_vector.y])
+    norm_target = np.linalg.norm(waypoint_vector)
+
+    velocity = vehicle.get_velocity()
+    forward_vector = np.array([velocity.x, velocity.y])
+    forward_vector = np.linalg.norm(forward_vector)
+
+    cos = np.clip(np.dot(forward_vector, waypoint_vector) / norm_target, -1., 1.)
+    return cos[0]
 
 
 def compute_magnitude_angle(target_location, current_location, orientation):
