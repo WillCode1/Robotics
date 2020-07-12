@@ -77,6 +77,7 @@ class CarEnv:
         self.angular_velocity = None
 
         self.global_route = None
+        self.compass = None
         self.last_waypoint = None
 
         random.seed(42)
@@ -147,6 +148,7 @@ class CarEnv:
         self.lane_invasion = lane.crossed_lane_markings
 
     def imu_callback(self, imu):
+        self.compass = imu.compass
         if self.debug:
             # print('acceleration: x={0}, y={1}, z={2}'.
             #       format(imu.accelerometer.x, imu.accelerometer.y, imu.accelerometer.z))
@@ -166,7 +168,9 @@ class CarEnv:
             location = random.choice(self.world.get_map().get_spawn_points()).location
             start_waypoint = self.map.get_waypoint(self.vehicle.get_location())
             end_waypoint = self.map.get_waypoint(carla.Location(location.x, location.y, location.z))
-            route = self.global_route.trace_route(start_waypoint, end_waypoint, sampling_distance=20)
+            route = self.global_route.trace_route(start_waypoint, end_waypoint, sampling_distance=2)
+            # for index, temp in enumerate(route):
+            #     print(temp[0].transform.location, temp[0].transform.rotation)
             # draw_waypoints(self.world, route, z=100)
             spawn_car(self.world, route, self.model_3)
 
@@ -209,7 +213,7 @@ class CarEnv:
         """
         # Add IMU sensor to vehicle.
         imu_bp = self.blueprint_library.find('sensor.other.imu')
-        imu_bp.set_attribute("sensor_tick", str(3.0))
+        # imu_bp.set_attribute("sensor_tick", str(3.0))
         imu = self.world.spawn_actor(imu_bp, other_transform, attach_to=self.vehicle,
                                      attachment_type=carla.AttachmentType.Rigid)
         imu.listen(lambda imu: self.imu_callback(imu))
@@ -252,13 +256,9 @@ class CarEnv:
         distance = distance_vehicle(current_waypoint, self.last_waypoint.transform)
         self.last_waypoint = current_waypoint
 
-        # if self.debug:
-        #     print("kmh = {}!".format(kmh))
+        print(current_waypoint.transform.rotation)
+        print(self.compass)
 
-        '''
-            1. 碰撞 done
-            2. 超出车道线 done
-        '''
         if velocity[0] >= 10:
             done = False
             reward = 10

@@ -28,11 +28,11 @@ class Critic:
         """
         sem_camera, depth_camera, velocity = self.state_dim
         sem_model = self.create_conv2d_model(sem_camera)
-        sem_model.load_weights('models/' + 'sem_encoder.h5')
+        # sem_model.load_weights('models/' + 'sem_encoder.h5')
         # for layer in sem_model.layers:
         #     layer.trainable = False
         depth_model = self.create_conv2d_model(depth_camera)
-        depth_model.load_weights('models/' + 'depth_encoder.h5')
+        # depth_model.load_weights('models/' + 'depth_encoder.h5')
         # for layer in depth_model.layers:
         #     layer.trainable = False
 

@@ -28,8 +28,8 @@ if __name__ == "__main__":
     tau = 0.01
 
     soft_update = False
-    load_model = False
-    debug = True
+    load_model = True
+    debug = False
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=50,
