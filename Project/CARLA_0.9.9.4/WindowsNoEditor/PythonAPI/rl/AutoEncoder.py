@@ -5,6 +5,20 @@ from tensorflow import keras
 import random
 from rl.CarEnv import CarEnv
 
+K = keras.backend
+kl_divergence = keras.losses.kullback_leibler_divergence
+
+
+class KLDivergenceRegularizer(keras.regularizers.Regularizer):
+    def __init__(self, weight, target=0.1):
+        self.weight = weight
+        self.target = target
+
+    def __call__(self, inputs):
+        mean_activities = K.mean(inputs, axis=0)
+        return self.weight * (kl_divergence(self.target, mean_activities) +
+                              kl_divergence(1. - self.target, 1. - mean_activities))
+
 
 class AutoEncoder:
     def __init__(self, act_dim, state_dim, act_range, model_path):
@@ -36,14 +50,24 @@ class AutoEncoder:
             keras.layers.Lambda(lambda image: image * 255)
         ])
         auto_encoder = keras.models.Sequential([encoder, decoder])
-        optimizer = keras.optimizers.Adam(lr=0.001, clipvalue=1.0)
-        auto_encoder.compile(loss=keras.losses.Huber(), optimizer=optimizer)
-        # print(auto_encoder.summary())
-        return auto_encoder, encoder
+        return auto_encoder
 
-    def unsupervised_pre_training(self, env, batch_size=32, n_epochs=1000, time_delta=30):
-        sem_auto_encoder, sem_encoder = self.create_auto_encoder(self.state_dim[0])
-        depth_auto_encoder, depth_encoder = self.create_auto_encoder(self.state_dim[0])
+    def unsupervised_pre_training(self, env, batch_size=32, n_epochs=1000, time_delta=30,
+                                  lr=0.01, load_weights=True):
+        sem_auto_encoder = self.create_auto_encoder(self.state_dim[0])
+        depth_auto_encoder = self.create_auto_encoder(self.state_dim[0])
+        sem_encoder, sem_decoder = sem_auto_encoder.layers
+        depth_encoder, depth_decoder = depth_auto_encoder.layers
+
+        optimizer = keras.optimizers.Adam(lr=lr, clipvalue=1.0)
+        sem_auto_encoder.compile(loss=keras.losses.Huber(), optimizer=optimizer)
+        depth_auto_encoder.compile(loss=keras.losses.Huber(), optimizer=optimizer)
+
+        if load_weights:
+            sem_encoder.load_weights(self.model_path + 'sem_encoder.h5')
+            sem_decoder.load_weights(self.model_path + 'sem_decoder.h5')
+            depth_encoder.load_weights(self.model_path + 'depth_encoder.h5')
+            depth_decoder.load_weights(self.model_path + 'depth_decoder.h5')
 
         for epoch in range(n_epochs):
             sem_image = []
@@ -82,8 +106,14 @@ class AutoEncoder:
                 depth_loss = depth_auto_encoder.train_on_batch(depth_image, depth_image)
                 print("sem_loss: {}, depth_loss: {}".format(sem_loss, depth_loss))
 
+            if np.isnan(sem_loss) or np.isnan(depth_loss):
+                break
+
             sem_encoder.save_weights(self.model_path + 'sem_encoder.h5')
+            sem_decoder.save_weights(self.model_path + 'sem_decoder.h5')
             depth_encoder.save_weights(self.model_path + 'depth_encoder.h5')
+            depth_decoder.save_weights(self.model_path + 'depth_decoder.h5')
+            print("Save model!")
 
 
 if __name__ == "__main__":
@@ -92,7 +122,7 @@ if __name__ == "__main__":
 
     IM_WIDTH = 400
     IM_HEIGHT = 400
-    batch_size = 8
+    batch_size = 4
     EPISODES = 1000
     image_shape = (IM_HEIGHT, IM_WIDTH, 3)
     state_dim = [image_shape, image_shape, 1]
@@ -104,4 +134,4 @@ if __name__ == "__main__":
                  no_rendering_mode=True, debug=debug)
 
     ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)
-    ae.unsupervised_pre_training(env, batch_size=batch_size)
+    ae.unsupervised_pre_training(env, batch_size=batch_size, lr=1e-2, load_weights=False)
