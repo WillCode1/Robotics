@@ -24,7 +24,7 @@ if __name__ == "__main__":
     state_dim = [image_shape, image_shape, 1]
     action_dim = 2  # [throttle_brake, steer]
 
-    lr = 0.05
+    lr = 0.005
     tau = 0.01
 
     soft_update = False
