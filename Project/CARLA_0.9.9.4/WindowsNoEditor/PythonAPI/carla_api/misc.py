@@ -158,10 +158,10 @@ def compute_cos_about_waypoint(waypoint, vehicle):
 
     velocity = vehicle.get_velocity()
     forward_vector = np.array([velocity.x, velocity.y])
-    forward_vector = np.linalg.norm(forward_vector)
+    norm_forward = np.linalg.norm(forward_vector)
 
-    cos = np.clip(np.dot(forward_vector, waypoint_vector) / norm_target, -1., 1.)
-    return cos[0]
+    cos = np.clip(np.dot(forward_vector, waypoint_vector) / (norm_target * norm_forward), -1., 1.)
+    return cos
 
 
 def compute_magnitude_angle(target_location, current_location, orientation):

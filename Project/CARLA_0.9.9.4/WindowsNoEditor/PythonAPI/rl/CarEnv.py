@@ -241,6 +241,7 @@ class CarEnv:
         info = None
 
         if throttle_brake == 10.0 and steer == 10.0:
+            # self.vehicle.apply_control(carla.VehicleControl(throttle=0.7, steer=0))
             self.vehicle.set_autopilot(True)
             info = self.vehicle.get_control()
         elif throttle_brake >= 0:
@@ -257,7 +258,7 @@ class CarEnv:
         cos = compute_cos_about_waypoint(current_waypoint, self.vehicle)
         kmh = velocity[0] * cos * 3.6
 
-        if kmh > 1:
+        if kmh > 0:
             print("kmh:{}, normal:{}".format(velocity[0] * 3.6, kmh))
 
         if kmh >= 40:
@@ -269,10 +270,10 @@ class CarEnv:
 
         if len(self.collision_hist) != 0:
             done = True
-            reward = -200
+            reward = -2000
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
-            reward = -100
+            reward = -1000
 
         if len(self.lane_invasion) != 0:
         #     for lane in self.lane_invasion:
