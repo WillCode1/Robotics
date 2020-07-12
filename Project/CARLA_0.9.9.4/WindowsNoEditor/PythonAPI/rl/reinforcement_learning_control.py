@@ -24,10 +24,10 @@ if __name__ == "__main__":
     state_dim = [image_shape, image_shape, 1]
     action_dim = 2  # [throttle_brake, steer]
 
-    lr = 0.005
+    lr = 0.05
     tau = 0.01
 
-    soft_update = False
+    soft_update = True
     load_model = False
     debug = False
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')

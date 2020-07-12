@@ -131,7 +131,7 @@ class DDPG:
                 if imitation:
                     action = np.array([10, 10])
                     new_state, reward, done, vehicle_control = env.step(action)
-                    pass
+                    action = np.array([vehicle_control.throttle - vehicle_control.brake, vehicle_control.steer])
                 else:
                     action = self.policy_action(state)
                     action = np.clip(action + noise.generate(time), -self.act_range, self.act_range)
