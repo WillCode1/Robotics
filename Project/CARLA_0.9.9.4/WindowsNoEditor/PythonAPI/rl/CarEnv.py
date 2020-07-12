@@ -271,16 +271,19 @@ class CarEnv:
             reward -= -1000
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
-            reward -= -500
+            reward -= -100
+        # elif interval_time > 5 and distance < 6:
+        #     done = True
+        #     reward -= 5000
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
                 if lane.type == carla.LaneMarkingType.Solid:
                     done = True
-                    reward -= 300
+                    reward -= 30
                 elif lane.type == carla.LaneMarkingType.SolidSolid:
                     done = True
-                    reward -= 500
+                    reward -= 50
             self.lane_invasion = []
 
         if self.run_seconds_per_episode is not None and interval_time > self.run_seconds_per_episode:
