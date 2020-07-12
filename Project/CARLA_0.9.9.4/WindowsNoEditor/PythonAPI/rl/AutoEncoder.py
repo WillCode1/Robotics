@@ -134,4 +134,4 @@ if __name__ == "__main__":
                  no_rendering_mode=True, debug=debug)
 
     ae = AutoEncoder(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', act_range=1.0)
-    ae.unsupervised_pre_training(env, batch_size=batch_size, lr=1e-2, load_weights=False)
+    ae.unsupervised_pre_training(env, batch_size=batch_size, lr=1e-2, load_weights=True)
