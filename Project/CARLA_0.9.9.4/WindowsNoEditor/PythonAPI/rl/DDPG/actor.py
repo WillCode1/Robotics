@@ -69,8 +69,8 @@ class Actor:
             self.target_model.set_weights(self.model.get_weights())
 
     def save(self, path):
-        self.model.save_weights(path + '_actor.h5')
+        self.model.save_weights(path + 'actor.h5')
 
     def load_weights(self, path):
-        self.model.load_weights(path + '_actor.h5')
-        self.target_model.load_weights(path + '_actor.h5')
+        self.model.load_weights(path + 'actor.h5')
+        self.target_model.load_weights(path + 'actor.h5')

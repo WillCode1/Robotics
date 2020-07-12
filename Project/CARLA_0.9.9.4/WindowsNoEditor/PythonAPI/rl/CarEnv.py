@@ -253,6 +253,8 @@ class CarEnv:
         # self.vehicle.get_angular_velocity()
         current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
         cos = compute_cos_about_waypoint(current_waypoint, self.vehicle)
+        if cos < 0.3:
+            print("Error!")
         kmh = velocity[0] * cos * 3.6
 
         if kmh >= 40:
@@ -264,10 +266,10 @@ class CarEnv:
 
         if len(self.collision_hist) != 0:
             done = True
-            reward -= -1000
+            reward -= 1000
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
-            reward -= -100
+            reward -= 100
 
         if len(self.lane_invasion) != 0:
             for lane in self.lane_invasion:
