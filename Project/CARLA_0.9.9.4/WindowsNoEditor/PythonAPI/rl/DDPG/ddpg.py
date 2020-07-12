@@ -112,7 +112,8 @@ class DDPG:
         # Train both networks on sampled batch, update target networks
         self.update_models(states, actions, q_target)
 
-    def play_and_train(self, env, batch_size=32, n_episode=1000, load_model=False, if_gather_stats=False):
+    def play_and_train(self, env, batch_size=32, n_episode=1000,
+                       load_model=False, imitation=False, if_gather_stats=False):
         if load_model:
             self.load_weights(self.model_path)
 
@@ -127,20 +128,18 @@ class DDPG:
             noise = OrnsteinUhlenbeckProcess(size=self.act_dim)
 
             while not done:
-                # Actor picks an action (following the deterministic policy)
-                action = self.policy_action(state)
-                # Clip continuous values to be valid w.r.t. environment
-                action = np.clip(action + noise.generate(time), -self.act_range, self.act_range)
-                # Retrieve new state, reward, and whether the state is terminal
-                new_state, reward, done, _ = env.step(action)
-                # Add outputs to memory buffer
+                if imitation:
+                    action = np.array([10, 10])
+                    new_state, reward, done, vehicle_control = env.step(action)
+                    pass
+                else:
+                    action = self.policy_action(state)
+                    action = np.clip(action + noise.generate(time), -self.act_range, self.act_range)
+                    new_state, reward, done, _ = env.step(action)
                 self.memorize(state, action, reward, new_state, done)
-                # Update current state
                 state = new_state
                 total_reward += reward
                 time += 1
-                # if len(self.buffer) >= batch_size:
-                #     self.train(batch_size)
 
             if len(self.buffer) >= batch_size:
                 self.train(batch_size)

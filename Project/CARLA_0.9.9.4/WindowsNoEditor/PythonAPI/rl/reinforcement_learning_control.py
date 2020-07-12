@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     IM_WIDTH = 400
     IM_HEIGHT = 400
-    batch_size = 8
+    batch_size = 4
     EPISODES = 1000
     image_shape = (IM_HEIGHT, IM_WIDTH, 3)
     state_dim = [image_shape, image_shape, 1]
@@ -28,16 +28,17 @@ if __name__ == "__main__":
     tau = 0.01
 
     soft_update = False
-    load_model = True
+    load_model = False
     debug = False
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=50,
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=20,
                  no_rendering_mode=False, debug=debug)
 
     algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', soft_update=soft_update,
                 buffer_size=5000, act_range=1.0, lr=lr, tau=tau)
-    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model)
+    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES,
+                                load_model=load_model, imitation=True)
 
     # Export results to CSV
     df = pd.DataFrame(np.array(stats))

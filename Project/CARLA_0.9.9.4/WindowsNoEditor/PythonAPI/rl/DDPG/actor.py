@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.initializers import RandomUniform
+from tensorflow.keras.initializers import Ones
 
 
 class Actor:
@@ -44,7 +45,7 @@ class Actor:
         x = keras.layers.concatenate([sem, depth, velocity])
         x = keras.layers.Dense(30, activation="selu")(x)
         x = keras.layers.Dense(10, activation="selu")(x)
-        throttle_brake = keras.layers.Dense(1, activation="tanh", kernel_initializer=RandomUniform())(x)
+        throttle_brake = keras.layers.Dense(1, activation="tanh", kernel_initializer=Ones())(x)
         steer = keras.layers.Dense(1, activation="tanh", kernel_initializer=RandomUniform())(x)
         action = keras.layers.concatenate([throttle_brake, steer])
         # action = keras.layers.Lambda(lambda i: i * self.act_range)(action)

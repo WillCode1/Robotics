@@ -238,13 +238,15 @@ class CarEnv:
     def step(self, action):
         action = action.astype(np.float64)
         throttle_brake, steer = action
+        info = None
 
-        if throttle_brake >= 0:
+        if throttle_brake == 10.0 and steer == 10.0:
+            self.vehicle.set_autopilot(True)
+            info = self.vehicle.get_control()
+        elif throttle_brake >= 0:
             self.vehicle.apply_control(carla.VehicleControl(throttle=throttle_brake, steer=steer))
         else:
             self.vehicle.apply_control(carla.VehicleControl(brake=-throttle_brake, steer=steer))
-
-        # self.vehicle.set_autopilot(True)
 
         velocity = get_speed(self.vehicle)
         interval_time = time.time() - self.episode_start
@@ -253,9 +255,10 @@ class CarEnv:
         # self.vehicle.get_angular_velocity()
         current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
         cos = compute_cos_about_waypoint(current_waypoint, self.vehicle)
-        if cos < 0.3:
-            print("Error!")
         kmh = velocity[0] * cos * 3.6
+
+        if kmh > 1:
+            print("kmh:{}, normal:{}".format(velocity[0] * 3.6, kmh))
 
         if kmh >= 40:
             done = False
@@ -266,25 +269,25 @@ class CarEnv:
 
         if len(self.collision_hist) != 0:
             done = True
-            reward -= 1000
+            reward = -200
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
-            reward -= 100
+            reward = -100
 
         if len(self.lane_invasion) != 0:
-            for lane in self.lane_invasion:
-                if lane.type == carla.LaneMarkingType.Solid:
-                    done = True
-                    reward -= 30
-                elif lane.type == carla.LaneMarkingType.SolidSolid:
-                    done = True
-                    reward -= 50
+        #     for lane in self.lane_invasion:
+        #         if lane.type == carla.LaneMarkingType.Solid:
+        #             done = True
+        #             reward -= 30
+        #         elif lane.type == carla.LaneMarkingType.SolidSolid:
+        #             done = True
+        #             reward -= 50
             self.lane_invasion = []
 
         if self.run_seconds_per_episode is not None and interval_time > self.run_seconds_per_episode:
             done = True
 
-        return (self.sem_camera_input, self.depth_camera_input, velocity), reward, done, None
+        return (self.sem_camera_input, self.depth_camera_input, velocity), reward, done, info
 
 
 if __name__ == "__main__":
@@ -296,6 +299,6 @@ if __name__ == "__main__":
 
     env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, no_rendering_mode=False)
     old_state = env.reset(), 0
-    action = np.array([0, 0])
+    action = np.array([10, 1])
     while True:
         new_state, reward, done, _ = env.step(action)
