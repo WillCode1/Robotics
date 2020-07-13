@@ -32,24 +32,24 @@ class Actor:
         # sem_model.load_weights('models/' + 'sem_encoder.h5')
         # for layer in sem_model.layers:
         #     layer.trainable = False
-        depth_model = self.create_conv2d_model(depth_camera)
-        # depth_model.load_weights('models/' + 'depth_encoder.h5')
-        # for layer in depth_model.layers:
-        #     layer.trainable = False
+        # depth_model = self.create_conv2d_model(depth_camera)
+        # # depth_model.load_weights('models/' + 'depth_encoder.h5')
+        # # for layer in depth_model.layers:
+        # #     layer.trainable = False
 
         velocity = keras.layers.Input(shape=[velocity])
 
         sem = keras.layers.GlobalAvgPool2D()(sem_model.output)
-        depth = keras.layers.GlobalAvgPool2D()(depth_model.output)
+        # depth = keras.layers.GlobalAvgPool2D()(depth_model.output)
 
-        x = keras.layers.concatenate([sem, depth, velocity])
+        x = keras.layers.concatenate([sem, velocity])
         x = keras.layers.Dense(30, activation="selu")(x)
         x = keras.layers.Dense(10, activation="selu")(x)
         throttle_brake = keras.layers.Dense(1, activation="tanh", kernel_initializer=Ones())(x)
         steer = keras.layers.Dense(1, activation="tanh", kernel_initializer=RandomUniform())(x)
         action = keras.layers.concatenate([throttle_brake, steer])
         # action = keras.layers.Lambda(lambda i: i * self.act_range)(action)
-        model = keras.Model(inputs=[sem_model.input, depth_model.input, velocity], outputs=[action])
+        model = keras.Model(inputs=[sem_model.input, velocity], outputs=[action])
         return model
 
     def predict(self, state):

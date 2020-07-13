@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from rl.CarEnv import CarEnv
 from rl.DDPG.ddpg import DDPG
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 if __name__ == "__main__":
     if not os.path.isdir("./models"):
@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
     IM_WIDTH = 400
     IM_HEIGHT = 400
-    batch_size = 4
+    batch_size = 2
     EPISODES = 1000
     image_shape = (IM_HEIGHT, IM_WIDTH, 3)
     state_dim = [image_shape, image_shape, 1]
@@ -32,13 +32,13 @@ if __name__ == "__main__":
     debug = False
     # model.load_weights(f'models/-10234.00min_-3670.20avg_0.37epsilon_50s run_seconds.h5')
 
-    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=True, run_seconds_per_episode=20,
-                 no_rendering_mode=False, debug=debug)
+    env = CarEnv(IM_HEIGHT, IM_WIDTH, show_sem_camera=False, run_seconds_per_episode=20,
+                 no_rendering_mode=True, debug=debug)
 
     algo = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', soft_update=soft_update,
                 buffer_size=5000, act_range=1.0, lr=lr, tau=tau)
-    stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES,
-                                load_model=load_model, imitation=True)
+    stats = algo.imitation_learning(env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model)
+    # stats = algo.play_and_train(env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model)
 
     # Export results to CSV
     df = pd.DataFrame(np.array(stats))

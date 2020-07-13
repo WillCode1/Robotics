@@ -183,15 +183,15 @@ class CarEnv:
         self.actor_list.append(sem_camera)
 
         # 深度相机
-        depth_camera = self.blueprint_library.find("sensor.camera.depth")
-        depth_camera.set_attribute("image_size_x", f"{self.img_width}")
-        depth_camera.set_attribute("image_size_y", f"{self.img_height}")
-        depth_camera.set_attribute("fov", "110")
-
-        depth_camera = self.world.spawn_actor(depth_camera, camera_transform, attach_to=self.vehicle,
-                                              attachment_type=carla.AttachmentType.SpringArm)
-        depth_camera.listen(lambda data: self.depth_camera_callback(data))
-        self.actor_list.append(depth_camera)
+        # depth_camera = self.blueprint_library.find("sensor.camera.depth")
+        # depth_camera.set_attribute("image_size_x", f"{self.img_width}")
+        # depth_camera.set_attribute("image_size_y", f"{self.img_height}")
+        # depth_camera.set_attribute("fov", "110")
+        #
+        # depth_camera = self.world.spawn_actor(depth_camera, camera_transform, attach_to=self.vehicle,
+        #                                       attachment_type=carla.AttachmentType.SpringArm)
+        # depth_camera.listen(lambda data: self.depth_camera_callback(data))
+        # self.actor_list.append(depth_camera)
 
         # RGB相机
         if self.show_rgb_camera:
@@ -229,11 +229,11 @@ class CarEnv:
         collision_sensor.listen(lambda event: self.collision_callback(event))
         self.actor_list.append(collision_sensor)
 
-        while self.sem_camera_input is None or self.depth_camera_input is None:
+        while self.sem_camera_input is None:
             time.sleep(0.01)
 
         self.episode_start = time.time()
-        return (self.sem_camera_input, self.depth_camera_input, np.array([0.0]))
+        return (self.sem_camera_input, np.array([0.0]))
 
     def step(self, action):
         action = action.astype(np.float64)
@@ -258,7 +258,7 @@ class CarEnv:
         cos = compute_cos_about_waypoint(current_waypoint, self.vehicle)
         kmh = velocity[0] * cos * 3.6
 
-        if kmh > 0:
+        if kmh < -0.1:
             print("kmh:{}, normal:{}".format(velocity[0] * 3.6, kmh))
 
         if kmh >= 40:
@@ -288,7 +288,7 @@ class CarEnv:
         if self.run_seconds_per_episode is not None and interval_time > self.run_seconds_per_episode:
             done = True
 
-        return (self.sem_camera_input, self.depth_camera_input, velocity), reward, done, info
+        return (self.sem_camera_input, velocity), reward, done, info
 
 
 if __name__ == "__main__":

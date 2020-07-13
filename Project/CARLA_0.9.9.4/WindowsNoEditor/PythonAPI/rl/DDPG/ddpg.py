@@ -73,12 +73,12 @@ class DDPG:
                                for field_index in range(4) if field_index in [0, 3]]
         actions, rewards, dones = [np.array([experience[field_index] for experience in batch_experiences])
                                    for field_index in range(5) if field_index in [1, 2, 4]]
-        input1, input2, input3 = [np.array([state[field_index] for state in states])
-                                  for field_index in range(3)]
-        states = (input1, input2, input3)
-        input1, input2, input3 = [np.array([next_state[field_index] for next_state in next_states])
-                                  for field_index in range(3)]
-        next_states = (input1, input2, input3)
+        input1, input2, = [np.array([state[field_index] for state in states])
+                           for field_index in range(3)]
+        states = (input1, input2)
+        input1, input2 = [np.array([next_state[field_index] for next_state in next_states])
+                          for field_index in range(3)]
+        next_states = (input1, input2)
         return states, actions, rewards, next_states, dones
 
     def update_models(self, states, actions, q_target):
@@ -112,8 +112,7 @@ class DDPG:
         # Train both networks on sampled batch, update target networks
         self.update_models(states, actions, q_target)
 
-    def play_and_train(self, env, batch_size=32, n_episode=1000,
-                       load_model=False, imitation=False, if_gather_stats=False):
+    def play_and_train(self, env, batch_size=32, n_episode=1000, load_model=False, if_gather_stats=False):
         if load_model:
             self.load_weights(self.model_path)
 
@@ -128,14 +127,9 @@ class DDPG:
             noise = OrnsteinUhlenbeckProcess(size=self.act_dim)
 
             while not done:
-                if imitation:
-                    action = np.array([10, 10])
-                    new_state, reward, done, vehicle_control = env.step(action)
-                    action = np.array([vehicle_control.throttle - vehicle_control.brake, vehicle_control.steer])
-                else:
-                    action = self.policy_action(state)
-                    action = np.clip(action + noise.generate(time), -self.act_range, self.act_range)
-                    new_state, reward, done, _ = env.step(action)
+                action = self.policy_action(state)
+                action = np.clip(action + noise.generate(time), -self.act_range, self.act_range)
+                new_state, reward, done, _ = env.step(action)
                 self.memorize(state, action, reward, new_state, done)
                 state = new_state
                 total_reward += reward
@@ -159,6 +153,37 @@ class DDPG:
             tqdm_e.refresh()
 
         return results
+
+    def imitation_learning(self, env, batch_size=32, n_episode=1000, load_model=False):
+        if load_model:
+            self.load_weights(self.model_path)
+
+        tqdm_e = tqdm(range(n_episode), desc='Score', leave=True, unit=" episodes")
+        for episode in tqdm_e:
+            # Reset episode
+            total_reward, done = 0, False
+            state = env.reset()
+            env.vehicle.set_autopilot(True)
+
+            while not done:
+                action = np.array([10, 10])
+                new_state, reward, done, vehicle_control = env.step(action)
+                action = np.array([vehicle_control.throttle - vehicle_control.brake, vehicle_control.steer])
+
+                self.memorize(state, action, reward, new_state, done)
+                state = new_state
+                total_reward += reward
+
+            env.clear_env()
+
+            if len(self.buffer) >= batch_size:
+                self.train(batch_size)
+
+            self.save_weights(self.model_path)
+
+            # Display score
+            tqdm_e.set_description("Score: " + str(total_reward))
+            tqdm_e.refresh()
 
     def save_weights(self, path):
         # path += '_LR_{}'.format(self.lr)

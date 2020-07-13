@@ -31,18 +31,18 @@ class Critic:
         # sem_model.load_weights('models/' + 'sem_encoder.h5')
         # for layer in sem_model.layers:
         #     layer.trainable = False
-        depth_model = self.create_conv2d_model(depth_camera)
-        # depth_model.load_weights('models/' + 'depth_encoder.h5')
-        # for layer in depth_model.layers:
-        #     layer.trainable = False
+        # depth_model = self.create_conv2d_model(depth_camera)
+        # # depth_model.load_weights('models/' + 'depth_encoder.h5')
+        # # for layer in depth_model.layers:
+        # #     layer.trainable = False
 
         velocity = keras.layers.Input(shape=[velocity])
         action = keras.layers.Input(shape=self.action_dim)
 
         sem = keras.layers.GlobalAvgPool2D()(sem_model.output)
-        depth = keras.layers.GlobalAvgPool2D()(depth_model.output)
+        # depth = keras.layers.GlobalAvgPool2D()(depth_model.output)
 
-        x = keras.layers.concatenate([sem, depth, velocity, action])
+        x = keras.layers.concatenate([sem, velocity, action])
         x = keras.layers.Dense(30, activation="selu")(x)
         x = keras.layers.Dense(10, activation="selu")(x)
 
@@ -51,8 +51,7 @@ class Critic:
         advantages = raw_advantages - K.mean(raw_advantages, axis=1, keepdims=True)
         q_values = state_values + advantages
 
-        model = keras.Model(inputs=[sem_model.input, depth_model.input, velocity, action],
-                            outputs=[q_values])
+        model = keras.Model(inputs=[sem_model.input, velocity, action], outputs=[q_values])
         # print(model.summary())
         return model
 
