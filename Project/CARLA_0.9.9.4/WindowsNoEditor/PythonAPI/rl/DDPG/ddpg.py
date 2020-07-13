@@ -73,11 +73,11 @@ class DDPG:
                                for field_index in range(4) if field_index in [0, 3]]
         actions, rewards, dones = [np.array([experience[field_index] for experience in batch_experiences])
                                    for field_index in range(5) if field_index in [1, 2, 4]]
-        input1, input2, = [np.array([state[field_index] for state in states])
-                           for field_index in range(3)]
+        input1, input2 = [np.array([state[field_index] for state in states])
+                          for field_index in range(2)]
         states = (input1, input2)
         input1, input2 = [np.array([next_state[field_index] for next_state in next_states])
-                          for field_index in range(3)]
+                          for field_index in range(2)]
         next_states = (input1, input2)
         return states, actions, rewards, next_states, dones
 
