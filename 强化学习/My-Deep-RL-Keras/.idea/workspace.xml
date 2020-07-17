@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="57398e24-3b87-4e7c-9e26-c96bf0437840" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="IgnoredFileRootStore">
+    <option name="generatedRoots">
+      <set>
+        <option value="D:\AI\Robotics\open code\My-Deep-RL-Keras\.idea" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectId" id="1eB4woyY2yl3QS1GJITg6CatBrv" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../My-Torcs" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\AI\Robotics\open code\My-Deep-RL-Keras\other" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.dueling_double_DQN">
+    <configuration name="double_DQN" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="My-Deep-RL-Keras" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/other/DQN" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/other/DQN/double_DQN.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="dueling_double_DQN" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="My-Deep-RL-Keras" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/other/DQN" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/other/DQN/dueling_double_DQN.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.double_DQN" />
+      <item itemvalue="Python.dueling_double_DQN" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.dueling_double_DQN" />
+        <item itemvalue="Python.double_DQN" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="57398e24-3b87-4e7c-9e26-c96bf0437840" name="Default Changelist" comment="" />
+      <created>1593781893566</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1593781893566</updated>
+      <workItem from="1593781898404" duration="3919000" />
+      <workItem from="1593792237168" duration="37084000" />
+      <workItem from="1594034862461" duration="784000" />
+      <workItem from="1594035681001" duration="9000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="123" y="177" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1593923022577">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="123" y="177" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1593923022577" />
+    <state x="436" y="278" key="FileChooserDialogImpl" timestamp="1594035688649">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="436" y="278" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1594035688649" />
+    <state width="1289" height="327" key="GridCell.Tab.0.bottom" timestamp="1593951591315">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1289" height="327" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1593951591315" />
+    <state width="1289" height="327" key="GridCell.Tab.0.center" timestamp="1593951591315">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1289" height="327" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1593951591315" />
+    <state width="1289" height="327" key="GridCell.Tab.0.left" timestamp="1593951591315">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1289" height="327" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1593951591315" />
+    <state width="1289" height="327" key="GridCell.Tab.0.right" timestamp="1593951591315">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1289" height="327" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1593951591315" />
+    <state width="1289" height="327" key="GridCell.Tab.1.bottom" timestamp="1593951591315">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1289" height="327" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1593951591315" />
+    <state width="1289" height="327" key="GridCell.Tab.1.center" timestamp="1593951591315">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1289" height="327" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1593951591315" />
+    <state width="1289" height="327" key="GridCell.Tab.1.left" timestamp="1593951591315">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1289" height="327" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1593951591315" />
+    <state width="1289" height="327" key="GridCell.Tab.1.right" timestamp="1593951591315">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1289" height="327" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1593951591315" />
+    <state x="175" y="165" key="SettingsEditor" timestamp="1593782104430">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="175" y="165" key="SettingsEditor/0.0.1920.1040@0.0.1920.1040" timestamp="1593782104430" />
+    <state x="355" y="347" key="com.intellij.ide.util.TipDialog" timestamp="1594035680987">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="355" y="347" key="com.intellij.ide.util.TipDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1594035680987" />
+    <state x="891" y="4" width="1035" height="1018" key="dock-window-1" timestamp="1593876262418">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="891" y="4" width="1035" height="1018" key="dock-window-1/0.0.1920.1040@0.0.1920.1040" timestamp="1593876262418" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/DDPG/ddpg.py</url>
+          <line>84</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/other/MC_reinforce.py</url>
+          <line>24</line>
+          <option name="timeStamp" value="28" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/My_Deep_RL_Keras$PGdemo__1_.coverage" NAME="PGdemo (1) Coverage Results" MODIFIED="1593913187933" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/other" />
+    <SUITE FILE_PATH="coverage/My_Deep_RL_Keras$demo.coverage" NAME="demo Coverage Results" MODIFIED="1593919516219" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/other" />
+    <SUITE FILE_PATH="coverage/My_Deep_RL_Keras$PG.coverage" NAME="PG Coverage Results" MODIFIED="1593922134854" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/other" />
+    <SUITE FILE_PATH="coverage/My_Deep_RL_Keras$PGdemo.coverage" NAME="PGdemo Coverage Results" MODIFIED="1593922239427" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/other" />
+    <SUITE FILE_PATH="coverage/My_Deep_RL_Keras$double_DQN.coverage" NAME="double_DQN Coverage Results" MODIFIED="1593796805927" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/other/DQN" />
+    <SUITE FILE_PATH="coverage/My_Deep_RL_Keras$dueling_double_DQN.coverage" NAME="dueling_double_DQN Coverage Results" MODIFIED="1593828276116" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/other/DQN" />
+  </component>
+</project>
