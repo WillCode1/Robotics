@@ -70,8 +70,7 @@ def training_step(batch_size):
     best_next_actions = np.argmax(next_Q_values, axis=1)
     next_mask = tf.one_hot(best_next_actions, n_outputs).numpy()
     next_best_Q_values = (target.predict(next_states) * next_mask).sum(axis=1)
-    target_Q_values = (rewards +
-                       (1 - dones) * discount_rate * next_best_Q_values)
+    target_Q_values = (rewards + (1 - dones) * discount_rate * next_best_Q_values)
     target_Q_values = target_Q_values.reshape(-1, 1)
     mask = tf.one_hot(actions, n_outputs)
     with tf.GradientTape() as tape:
