@@ -32,9 +32,8 @@ class Critic:
         x = keras.layers.concatenate([state, action])
         x = keras.layers.BatchNormalization()(x)
         for hidden_size in self.hidden_layers:
-            x = keras.layers.Dense(hidden_size)(x)
+            x = keras.layers.Dense(hidden_size, activation="selu")(x)
             x = keras.layers.BatchNormalization()(x)
-            x = keras.layers.Activation("selu")(x)
 
         state_values = keras.layers.Dense(1)(x)
         raw_advantages = keras.layers.Dense(self.action_dim, kernel_initializer=RandomUniform())(x)

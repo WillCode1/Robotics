@@ -30,13 +30,10 @@ class Actor:
         x = state
         x = keras.layers.BatchNormalization()(x)
         for hidden_size in self.hidden_layers:
-            x = keras.layers.Dense(hidden_size)(x)
+            x = keras.layers.Dense(hidden_size, activation="selu")(x)
             x = keras.layers.BatchNormalization()(x)
-            x = keras.layers.Activation("selu")(x)
 
-        action = keras.layers.Dense(1, kernel_initializer=RandomUniform())(x)
-        action = keras.layers.BatchNormalization()(action)
-        action = keras.layers.Activation("tanh")(action)
+        action = keras.layers.Dense(1, activation="tanh", kernel_initializer=RandomUniform())(x)
         action = keras.layers.Lambda(lambda i: i * self.act_range)(action)
         model = keras.Model(inputs=[state], outputs=[action])
         return model

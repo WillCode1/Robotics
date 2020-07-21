@@ -6,8 +6,8 @@ import pandas as pd
 from tensorflow import keras
 from DDPG.network.ddpg import DDPG
 from tqdm import tqdm
-from utils.utils import gather_stats
-from utils.utils import OrnsteinUhlenbeckProcess
+from utils.stats import gather_stats
+from utils.networks import OrnsteinUhlenbeckProcess
 
 
 def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
