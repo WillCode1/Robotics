@@ -6,8 +6,6 @@ K = keras.backend
 
 
 class Critic:
-    """ Critic for the DDPG Algorithm, Q-Value function approximator
-    """
     def __init__(self, inp_dim, out_dim, lr, tau, hidden_layers):
         self.state_dim = inp_dim
         self.action_dim = out_dim
@@ -24,8 +22,6 @@ class Critic:
         self.target_model.compile(loss=loss_fn, optimizer=keras.optimizers.Adam(lr=lr))
 
     def create_model(self):
-        """ Assemble Critic network to predict q-values
-        """
         state = keras.layers.Input(shape=[self.state_dim])
         action = keras.layers.Input(shape=self.action_dim)
 
@@ -45,8 +41,6 @@ class Critic:
         return model
 
     def target_predict(self, inp):
-        """ Predict Q-Values using the target network
-        """
         states, actions = inp
         return self.target_model.predict([states, actions])
 

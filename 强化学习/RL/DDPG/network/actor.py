@@ -5,9 +5,6 @@ from tensorflow.keras.initializers import RandomUniform
 
 
 class Actor:
-    """ Actor Network for the DDPG Algorithm
-    """
-
     def __init__(self, inp_dim, out_dim, act_range, lr, tau, hidden_layers):
         self.state_dim = inp_dim
         self.action_dim = out_dim
@@ -22,15 +19,11 @@ class Actor:
         self.optimizer = keras.optimizers.Adam(lr=lr)
 
     def create_model(self):
-        """ Actor Network for Policy function Approximation, using a tanh
-        activation for continuous control. We add parameter noise to encourage
-        exploration, and balance it with Layer Normalization.
-        """
         state = keras.layers.Input(shape=[self.state_dim])
         x = state
         x = keras.layers.BatchNormalization()(x)
         for hidden_size in self.hidden_layers:
-            x = keras.layers.Dense(hidden_size, activation="selu")(x)
+            x = keras.layers.Dense(hidden_size, activation=keras.layers.LeakyReLU(0.2))(x)
             x = keras.layers.BatchNormalization()(x)
 
         action = keras.layers.Dense(1, activation="tanh", kernel_initializer=RandomUniform())(x)
@@ -39,13 +32,9 @@ class Actor:
         return model
 
     def predict(self, state):
-        """ Action prediction
-        """
         return self.model.predict(state)
 
     def target_predict(self, inp):
-        """ Action prediction (target network)
-        """
         return self.target_model.predict(inp)
 
     def transfer_weights(self, soft_update=True):

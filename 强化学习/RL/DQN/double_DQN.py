@@ -5,7 +5,7 @@ import gym
 from collections import deque
 
 # 平衡车问题
-env = gym.make("CartPole-v0")
+env = gym.make("CartPole-v1")
 input_shape = [4]  # 观测数据
 n_outputs = 2  # 可选动作
 

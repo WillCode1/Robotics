@@ -22,6 +22,7 @@ model = keras.models.Sequential([
 
 def play_one_step(env, obs, model, loss_fn):
     with tf.GradientTape() as tape:
+        # 此处有问题prob
         prob = model.predict(obs[np.newaxis])[0]
         action_prob = model(obs[np.newaxis])[0]
         action = np.random.choice(env.action_space.n, 1, p=prob)[0]
