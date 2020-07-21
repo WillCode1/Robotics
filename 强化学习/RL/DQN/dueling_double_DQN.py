@@ -21,7 +21,7 @@ hidden1 = keras.layers.Dense(32, activation="elu")(input_states)
 hidden2 = keras.layers.Dense(32, activation="elu")(hidden1)
 state_values = keras.layers.Dense(1)(hidden2)
 raw_advantages = keras.layers.Dense(n_outputs)(hidden2)
-advantages = raw_advantages - K.max(raw_advantages, axis=1, keepdims=True)
+advantages = raw_advantages - K.mean(raw_advantages, axis=1, keepdims=True)
 Q_values = state_values + advantages
 model = keras.models.Model(inputs=[input_states], outputs=[Q_values])
 
