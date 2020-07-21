@@ -29,6 +29,8 @@ optimizer = keras.optimizers.Adam(learning_rate, clipvalue=1.0)
 model.compile(loss="binary_crossentropy", optimizer="RMSprop")
 print(model.summary())
 
+keras.backend.set_value(model.optimizer.lr, 0.01)
+
 model.save_weights('my_keras_model.h5')
 model.load_weights("my_keras_model.h5")
 

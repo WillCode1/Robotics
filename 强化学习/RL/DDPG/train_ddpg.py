@@ -74,7 +74,7 @@ if __name__ == "__main__":
     gamma = 0.95
 
     soft_update = True
-    load_model = False
+    load_model = True
     if_debug = False
 
     agent = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', hidden_layers=[64, 64],

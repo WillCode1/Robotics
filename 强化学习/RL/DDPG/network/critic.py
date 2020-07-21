@@ -32,7 +32,7 @@ class Critic:
         x = keras.layers.concatenate([state, action])
         x = keras.layers.BatchNormalization()(x)
         for hidden_size in self.hidden_layers:
-            x = keras.layers.Dense(hidden_size, activation="selu")(x)
+            x = keras.layers.Dense(hidden_size, activation=keras.layers.LeakyReLU(0.2))(x)
             x = keras.layers.BatchNormalization()(x)
 
         state_values = keras.layers.Dense(1)(x)
