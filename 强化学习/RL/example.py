@@ -16,6 +16,7 @@ model = keras.models.Sequential([
     keras.layers.Reshape([28, 28, 1])
 ])
 
+kl = tf.keras.losses.KLDivergence()
 loss_fn = keras.losses.Huber()
 keras.layers.LeakyReLU(0.2)
 keras.layers.BatchNormalization()

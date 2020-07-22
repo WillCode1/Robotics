@@ -11,20 +11,19 @@ class Actor:
         self.act_range = act_range
         self.tau = tau
         self.hidden_layers = hidden_layers
-        self.time = 0
 
+        self.optimizer = keras.optimizers.Adam(lr=lr)
         self.model = self.create_model()
         self.target_model = self.create_model()
         self.target_model.set_weights(self.model.get_weights())
-        self.optimizer = keras.optimizers.Adam(lr=lr)
 
     def create_model(self):
         state = keras.layers.Input(shape=[self.state_dim])
         x = state
-        x = keras.layers.BatchNormalization()(x)
+        # x = keras.layers.BatchNormalization()(x)
         for hidden_size in self.hidden_layers:
             x = keras.layers.Dense(hidden_size, activation=keras.layers.LeakyReLU(0.2))(x)
-            x = keras.layers.BatchNormalization()(x)
+            # x = keras.layers.BatchNormalization()(x)
 
         action = keras.layers.Dense(1, activation="tanh", kernel_initializer=RandomUniform())(x)
         action = keras.layers.Lambda(lambda i: i * self.act_range)(action)
@@ -37,12 +36,9 @@ class Actor:
     def target_predict(self, inp):
         return self.target_model.predict(inp)
 
-    def transfer_weights(self, soft_update=True):
-        if soft_update:
-            for model_weight, target_weight in zip(self.model.weights, self.target_model.weights):
-                target_weight.assign(self.tau * model_weight + (1 - self.tau) * target_weight)
-        elif self.time % 50 == 0:
-            self.target_model.set_weights(self.model.get_weights())
+    def transfer_weights(self):
+        for model_weight, target_weight in zip(self.model.weights, self.target_model.weights):
+            target_weight.assign(self.tau * model_weight + (1 - self.tau) * target_weight)
 
     def save(self, path):
         self.model.save_weights(path + 'actor.h5')

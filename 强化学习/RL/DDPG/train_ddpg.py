@@ -14,8 +14,8 @@ def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
     if load_model:
         agent.load_weights(agent.model_path)
 
-    results = []
-    mean_reward = -np.inf
+    history = {'episode': [], 'episode_reward': []}
+    # history = {'episode': [], 'episode_reward': [], 'loss': []}
 
     tqdm_e = tqdm(range(n_episode), desc='Score', leave=True, unit=" episodes")
     for episode in tqdm_e:
@@ -32,28 +32,28 @@ def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
             total_reward += reward
             time += 1
 
-        if len(agent.buffer) >= batch_size:
-            agent.train(batch_size, if_debug=if_debug)
+            if if_debug:
+                print("action:{}".format(action[0]))
 
-        if episode != 0 and episode % 10 == 0:
+            if len(agent.buffer) >= batch_size:
+                agent.train(batch_size, if_debug=if_debug)
+
+        if episode != 0:
             agent.save_weights(agent.model_path)
-        if episode != 0 and episode % 1000 == 0:
-            agent.set_learning_rate(lr_decay=0.1)
 
             # Gather stats every episode for plotting
-            mean, stdev = gather_stats(agent, env)
+            mean, stdev = gather_stats(agent, env, 20)
             print('episode {0}: mean={1}'.format(episode, mean))
-            # if mean > mean_reward:
-            #     mean_reward = mean
-            #     agent.save_weights(agent.model_path)
-            if if_gather_stats:
-                results.append([episode, mean, stdev])
+
+        if if_gather_stats:
+            history['episode'].append(episode)
+            history['episode_reward'].append(mean)
 
         # Display score
         tqdm_e.set_description("Score: " + str(total_reward))
         tqdm_e.refresh()
 
-    return results
+    return history
 
 
 if __name__ == "__main__":
@@ -65,22 +65,22 @@ if __name__ == "__main__":
 
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
+    act_range = env.action_space.high[0]
 
     batch_size = 128
-    EPISODES = 10000
+    EPISODES = 200
     lr = 1e-2
     tau = 0.01
     gamma = 0.95
 
-    soft_update = True
-    load_model = True
+    load_model = False
     if_debug = False
 
     agent = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', hidden_layers=[64, 64],
-                 soft_update=soft_update, buffer_size=5000, act_range=2.0, lr=lr, tau=tau, gamma=gamma)
+                 buffer_size=5000, act_range=act_range, lr=lr, tau=tau, gamma=gamma)
 
-    stats = play_and_train(agent, env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model,
-                           if_gather_stats=False, if_debug=if_debug)
+    history = play_and_train(agent, env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model,
+                             if_gather_stats=False, if_debug=if_debug)
 
     # Export results to CSV
     # df = pd.DataFrame(np.array(stats))

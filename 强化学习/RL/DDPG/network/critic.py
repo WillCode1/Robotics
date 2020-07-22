@@ -11,7 +11,6 @@ class Critic:
         self.action_dim = out_dim
         self.tau = tau
         self.hidden_layers = hidden_layers
-        self.time = 0
 
         self.model = self.create_model()
         self.target_model = self.create_model()
@@ -26,10 +25,10 @@ class Critic:
         action = keras.layers.Input(shape=self.action_dim)
 
         x = keras.layers.concatenate([state, action])
-        x = keras.layers.BatchNormalization()(x)
+        # x = keras.layers.BatchNormalization()(x)
         for hidden_size in self.hidden_layers:
             x = keras.layers.Dense(hidden_size, activation=keras.layers.LeakyReLU(0.2))(x)
-            x = keras.layers.BatchNormalization()(x)
+            # x = keras.layers.BatchNormalization()(x)
 
         state_values = keras.layers.Dense(1)(x)
         raw_advantages = keras.layers.Dense(self.action_dim, kernel_initializer=RandomUniform())(x)
@@ -37,19 +36,15 @@ class Critic:
         q_values = state_values + advantages
 
         model = keras.Model(inputs=[state, action], outputs=[q_values])
-        # print(model.summary())
         return model
 
     def target_predict(self, inp):
         states, actions = inp
         return self.target_model.predict([states, actions])
 
-    def transfer_weights(self, soft_update=True):
-        if soft_update:
-            for model_weight, target_weight in zip(self.model.weights, self.target_model.weights):
-                target_weight.assign(self.tau * model_weight + (1 - self.tau) * target_weight)
-        elif self.time % 50 == 0:
-            self.target_model.set_weights(self.model.get_weights())
+    def transfer_weights(self):
+        for model_weight, target_weight in zip(self.model.weights, self.target_model.weights):
+            target_weight.assign(self.tau * model_weight + (1 - self.tau) * target_weight)
 
     def save(self, path):
         self.model.save_weights(path + 'critic.h5')
