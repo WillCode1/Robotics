@@ -8,6 +8,11 @@ import random
 from collections import deque
 K = keras.backend
 
+"""
+1、学习率：
+2、BN层
+"""
+
 
 class DDPG:
     def __init__(self, act_dim, state_dim, act_range, model_path, hidden_layers, k=1,

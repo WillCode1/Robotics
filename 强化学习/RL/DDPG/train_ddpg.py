@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     batch_size = 128
     EPISODES = 200
-    lr = 1e-2
+    lr = 1e-1
     tau = 0.01
     gamma = 0.95
 

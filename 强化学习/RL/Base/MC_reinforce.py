@@ -6,26 +6,17 @@ from tensorflow import keras
 
 env = gym.make("CartPole-v1")
 obs = env.reset()
-# obs: 推车的水平位置（0.0 为中心）、速度（正是右）、杆的角度（0.0 为垂直）及角速度（正为顺时针）
-
-# img = env.render(mode="rgb_array")    # 渲染
-print(env.action_space)     # Discrete(2)
-
-n_inputs = 4  # == env.observation_space.shape[0]
 
 model = keras.models.Sequential([
-    keras.layers.Dense(5, activation="elu", input_shape=[n_inputs]),
+    keras.layers.Dense(5, activation="elu", input_shape=[env.observation_space.shape[0]]),
     keras.layers.Dense(env.action_space.n, activation="softmax"),
 ])
-# print(model.summary())
 
 
 def play_one_step(env, obs, model, loss_fn):
     with tf.GradientTape() as tape:
-        # 此处有问题prob
-        prob = model.predict(obs[np.newaxis])[0]
         action_prob = model(obs[np.newaxis])[0]
-        action = np.random.choice(env.action_space.n, 1, p=prob)[0]
+        action = np.random.choice(env.action_space.n, 1, p=action_prob.numpy())[0]
         y_target = np.zeros([env.action_space.n], dtype=np.float32)
         y_target[action] = 1
         loss = tf.reduce_mean(loss_fn(y_target, action_prob))
