@@ -7,6 +7,7 @@ import argparse
 import numpy as np
 from threading import Thread
 from multiprocessing import cpu_count
+
 tf.keras.backend.set_floatx('float64')
 wandb.init(name='A3C', project="deep-rl-tf2")
 
@@ -19,6 +20,7 @@ parser.add_argument('--critic_lr', type=float, default=0.001)
 args = parser.parse_args()
 
 CUR_EPISODE = 0
+
 
 class Actor:
     def __init__(self, state_dim, action_dim, action_bound, std_bound):
@@ -49,7 +51,7 @@ class Actor:
         std = tf.clip_by_value(std, self.std_bound[0], self.std_bound[1])
         var = std ** 2
         log_policy_pdf = -0.5 * (action - mu) ** 2 / \
-            var - 0.5 * tf.math.log(var * 2 * np.pi)
+                         var - 0.5 * tf.math.log(var * 2 * np.pi)
         return tf.reduce_sum(log_policy_pdf, 1, keepdims=True)
 
     def compute_loss(self, mu, std, actions, advantages):
@@ -197,7 +199,7 @@ class WorkerAgent(Thread):
 
                     next_v_value = self.critic.model.predict(next_state)
                     td_targets = self.n_step_td_target(
-                        (rewards+8)/8, next_v_value, done)
+                        (rewards + 8) / 8, next_v_value, done)
                     advantages = td_targets - self.critic.model.predict(states)
 
                     actor_loss = self.global_actor.train(

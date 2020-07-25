@@ -1,4 +1,4 @@
-import wandb
+# import wandb
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense, Lambda
 
@@ -8,13 +8,13 @@ import numpy as np
 
 tf.keras.backend.set_floatx('float64')
 
-wandb.init(name='PPO', project="deep-rl-tf2")
+# wandb.init(name='PPO', project="deep-rl-tf2")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--update_interval', type=int, default=5)
-parser.add_argument('--actor_lr', type=float, default=0.0005)
-parser.add_argument('--critic_lr', type=float, default=0.001)
+parser.add_argument('--actor_lr', type=float, default=0.005)
+parser.add_argument('--critic_lr', type=float, default=0.01)
 parser.add_argument('--clip_ratio', type=float, default=0.1)
 parser.add_argument('--lmbda', type=float, default=0.95)
 parser.add_argument('--epochs', type=int, default=3)
@@ -176,7 +176,7 @@ class Agent:
                 state = next_state
 
             print('EP{} EpisodeReward={}'.format(ep, episode_reward))
-            wandb.log({'Reward': episode_reward})
+            # wandb.log({'Reward': episode_reward})
 
 
 def main():

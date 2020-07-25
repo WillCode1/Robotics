@@ -73,7 +73,6 @@ def training_step(batch_size):
         all_Q_values = model(states)
         Q_values = tf.reduce_sum(all_Q_values * mask, axis=1, keepdims=True)
         loss = tf.reduce_mean(loss_fn(target_Q_values, Q_values))
-        print(target_Q_values - Q_values)
     grads = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
@@ -81,9 +80,9 @@ def training_step(batch_size):
 rewards = []
 best_score = 0
 
-for episode in range(600):
+for episode in range(1000):
     obs = env.reset()
-    for step in range(200):
+    for step in range(500):
         epsilon = max(1 - episode / 500, 0.01)
         obs, reward, done, info = play_one_step(env, obs, epsilon)
         if done:
@@ -95,14 +94,15 @@ for episode in range(600):
     print("\rEpisode: {}, Steps: {}, eps: {:.3f}".format(episode, step + 1, epsilon), end="")
     if episode > 50:
         training_step(batch_size)
-    if episode % 50 == 0:
-        target.set_weights(model.get_weights())
-    # Alternatively, you can do soft updates at each step:
-    # if episode > 50:
-    # target_weights = target.get_weights()
-    # online_weights = model.get_weights()
-    # for index in range(len(target_weights)):
-    #    target_weights[index] = 0.99 * target_weights[index] + 0.01 * online_weights[index]
-    # target.set_weights(target_weights)
+    # if episode % 50 == 0:
+    #     target.set_weights(model.get_weights())
+    if episode > 50:
+        for model_weight, target_weight in zip(model.weights, target.weights):
+            target_weight.assign(0.01 * model_weight + 0.99 * target_weight)
 
 model.set_weights(best_weights)
+env.close()
+
+if __name__ == "__main__":
+    from utils.plot import plot_log
+    plot_log(1000, rewards)
