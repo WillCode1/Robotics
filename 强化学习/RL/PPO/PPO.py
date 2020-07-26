@@ -100,9 +100,8 @@ class Agent:
         self.memory = MemoryPPO(self.state_dim, self.action_n, self.TRAJECTORY_BUFFER_SIZE)
 
     def ppo_loss(self, advantage, old_prediction):
-        def get_log_probability_density(network_output_prediction, y_true):
+        def get_log_probability_density(mu_and_sigma, y_true):
             # the actor output contains mu and sigma concatenated. split them. shape is (batches,2xaction_n)
-            mu_and_sigma = network_output_prediction
             mu = mu_and_sigma[:, 0:self.action_n]
             sigma = mu_and_sigma[:, self.action_n:]
             variance = K.backend.square(sigma)
@@ -141,28 +140,16 @@ class Agent:
         There are 3 inputs. Only the state is for the pass though the neural net.
         The other two inputs are exclusivly used for the custom loss function (ppo_loss).
         """
-        # define inputs. Advantage and old_prediction are required to pass to the ppo_loss funktion
         state = K.layers.Input(shape=(self.state_dim[0],), name='state_input')
         advantage = K.layers.Input(shape=(1,), name='advantage_input')
         old_prediction = K.layers.Input(shape=(2 * self.action_n,), name='old_prediction_input')
-        # define hidden layers
         dense = K.layers.Dense(32, activation='relu', name='dense1')(state)
         dense = K.layers.Dense(32, activation='relu', name='dense2')(dense)
-        # connect layers. In the continuous case the actions are not probabilities summing up to 1 (softmax)
-        # but squshed numbers between -1 and 1 for each action (tanh). This represents the mu of a gaussian
-        # distribution
         action = K.layers.Dense(self.action_n, activation='tanh', name="actor_output_mu")(dense)
         mu = K.layers.Lambda(lambda x: x * self.action_bound, name="lambda_mu")(action)
-        # mu = 2 * muactor_output_layer_continuous
-        # in addtion, we have a second output layer representing the sigma for each action
         sigma = K.layers.Dense(self.action_n, activation='softplus', name="actor_output_sigma")(dense)
-        # sigma = sigma + K.backend.epsilon()
-        # concat layers. The alterative would be to have two output heads but this would then require to make a custom
-        # keras.function insead of the .compile and .fit routine adding more distraciton
         mu_and_sigma = K.layers.concatenate([mu, sigma])
-        # make keras.Model
         actor_network = K.Model(inputs=[state, advantage, old_prediction], outputs=mu_and_sigma)
-        # compile. Here the connection to the PPO loss fuction is made. The input placeholders are passed.
         actor_network.compile(optimizer='adam', loss=self.ppo_loss(advantage, old_prediction),
                               experimental_run_tf_function=False)
         return actor_network
@@ -172,16 +159,11 @@ class Agent:
         The critic is a simple scalar prediction on the state value(output) given an state(input)
         Loss is simply mse
         """
-        # define input layer
         state = K.layers.Input(shape=(self.state_dim[0],), name='state_input')
-        # define hidden layers
         dense = K.layers.Dense(32, activation='relu', name='dense1')(state)
         dense = K.layers.Dense(32, activation='relu', name='dense2')(dense)
-        # connect the layers to a 1-dim output: scalar value of the state (= Q value or V(s))
         V = K.layers.Dense(1, name="actor_output_layer")(dense)
-        # make keras.Model
         critic_network = K.Model(inputs=state, outputs=V)
-        # compile. Here the connection to the PPO loss fuction is made. The input placeholders are passed.
         critic_network.compile(optimizer='Adam', loss='mean_squared_error')
         return critic_network
 
@@ -196,23 +178,12 @@ class Agent:
         self.actor_old_network.set_weights(new_weights)
 
     def choose_action(self, state, optimal=False):
-        """chooses an action within the action space given a state.
-        The action is chosen by random with the weightings accoring to the probability
-        params:
-            :state: np.array of the states with state_dim length
-            :optimal: if True, the agent will always give best action for state.
-                     This will cause no exploring! --> deactivate for learning, just for evaluation
-        """
         assert isinstance(state, np.ndarray)
         assert state.shape == self.state_dim
-        # reshape for predict_on_batch which requires 2d-arrays (batches,state_dims) but only one batch
         state = state.reshape(1, -1)
-        # the probability list for each action is the output of the actor network given a state
-        # output has shape (batchsize,2xaction_n)
         mu_and_sigma = self.actor_network.predict_on_batch([state, self.dummy_advantage, self.dummy_old_prediciton])
         mu = mu_and_sigma[0, 0:self.action_n]
         sigma = mu_and_sigma[0, self.action_n:]
-        # action is chosen by random with the weightings accoring to the probability
         if optimal:
             action = mu
         else:
@@ -226,8 +197,6 @@ class Agent:
         3. fit actor and critic network
         4. soft update target "old" network
         """
-
-        # get randomized mini batches
         states, actions, gae_advantages, discounted_rewards, values = \
             self.memory.get_batch(self.TRAINING_BATCH_SIZE)
         gae_advantages = gae_advantages.reshape(-1, 1)  # batches of shape (1,) required
@@ -263,7 +232,7 @@ class Agent:
 
 # ENV_NAME = "MountainCarContinuous-v0"
 ENV_NAME = "Pendulum-v0"
-EPOCHS = 1000
+EPOCHS = 10000
 MAX_EPISODE_STEPS = 2000
 # train at the end of each epoch for simplicity. Not necessarily better.
 TRAJECTORY_BUFFER_SIZE = MAX_EPISODE_STEPS

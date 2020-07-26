@@ -15,11 +15,11 @@ tf.keras.backend.set_floatx('float64')
 parser = argparse.ArgumentParser()
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--update_interval', type=int, default=5)
-parser.add_argument('--actor_lr', type=float, default=0.05)
-parser.add_argument('--critic_lr', type=float, default=0.1)
-parser.add_argument('--clip_ratio', type=float, default=0.1)
+parser.add_argument('--actor_lr', type=float, default=0.1)
+parser.add_argument('--critic_lr', type=float, default=0.2)
+parser.add_argument('--clip_ratio', type=float, default=0.2)
 parser.add_argument('--lmbda', type=float, default=0.95)
-parser.add_argument('--epochs', type=int, default=3)
+parser.add_argument('--epochs', type=int, default=10)
 
 args = parser.parse_args()
 
@@ -65,7 +65,7 @@ class Actor:
         old_mu, old_std = self.old_model.predict(states)
         log_old_policy = self.log_pdf(old_mu, old_std, actions)
         log_new_policy = self.log_pdf(mu, std, actions)
-        log_old_policy = tf.stop_gradient(log_old_policy)
+        # log_old_policy = tf.stop_gradient(log_old_policy)
         ratio = tf.exp(log_new_policy - log_old_policy)
 
         # 'ppo1'
@@ -115,6 +115,10 @@ class Agent:
         self.actor = Actor(self.state_dim, self.action_dim, self.action_bound)
         self.critic = Critic(self.state_dim)
 
+    def update_actor(self):
+        for model_weight, target_weight in zip(self.actor.model.weights, self.actor.old_model.weights):
+            target_weight.assign(model_weight)
+
     def gae_target(self, rewards, v_values, next_v_value, done):
         td_targets = np.zeros_like(rewards)
         gae = np.zeros_like(rewards)
@@ -158,8 +162,8 @@ class Agent:
 
                     v_values = self.critic.model.predict(states)
                     next_v_value = self.critic.model.predict(next_state[np.newaxis])
-
                     gaes, td_targets = self.gae_target(rewards, v_values, next_v_value, done)
+                    self.update_actor()
 
                     for epoch in range(args.epochs):
                         actor_loss = self.actor.train(states, actions, gaes)
