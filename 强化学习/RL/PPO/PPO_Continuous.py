@@ -8,20 +8,6 @@ import argparse
 import numpy as np
 
 K = keras.backend
-tf.keras.backend.set_floatx('float64')
-
-# wandb.init(name='PPO', project="deep-rl-tf2")
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--gamma', type=float, default=0.99)
-parser.add_argument('--update_interval', type=int, default=5)
-parser.add_argument('--actor_lr', type=float, default=0.1)
-parser.add_argument('--critic_lr', type=float, default=0.2)
-parser.add_argument('--clip_ratio', type=float, default=0.2)
-parser.add_argument('--lmbda', type=float, default=0.95)
-parser.add_argument('--epochs', type=int, default=10)
-
-args = parser.parse_args()
 
 
 class Actor:
@@ -51,14 +37,11 @@ class Actor:
         return np.clip(action, -self.action_bound, self.action_bound)
 
     def log_pdf(self, mu, std, action):
-        # std = tf.clip_by_value(std, self.std_bound[0], self.std_bound[1])
-        var = std ** 2
-        log_policy_pdf = -0.5 * (action - mu) ** 2 / var - 0.5 * tf.math.log(var * 2 * np.pi)
-        return tf.reduce_sum(log_policy_pdf, 1, keepdims=True)
-        # variance = std ** 2
-        # pdf = 1. / tf.sqrt(2. * np.pi * variance) * tf.exp(-(action - mu) ** 2 / (2. * variance))
-        # log_pdf = tf.math.log(pdf + 1e-10)
-        # return tf.reduce_sum(log_pdf, 1, keepdims=True)
+        std = tf.clip_by_value(std, 1e-2, 1.0)
+        variance = std ** 2
+        pdf = 1. / tf.sqrt(2. * np.pi * variance) * tf.exp(-(action - mu) ** 2 / (2. * variance))
+        log_pdf = tf.math.log(pdf + 1e-10)
+        return tf.reduce_sum(log_pdf, 1, keepdims=True)
 
     def compute_loss(self, states, actions, gaes):
         mu, std = self.model(states)
@@ -74,6 +57,7 @@ class Actor:
         # self.kl_mean = tf.reduce_mean(kl)
         # self.aloss = -(tf.reduce_mean(surr - self.tflam * kl))
 
+        # 'ppo2'
         gaes = tf.stop_gradient(gaes)
         clipped_ratio = tf.clip_by_value(ratio, 1.0-args.clip_ratio, 1.0+args.clip_ratio)
         surrogate = -tf.minimum(ratio * gaes, clipped_ratio * gaes)
@@ -143,7 +127,6 @@ class Agent:
             reward_batch = []
 
             episode_reward, done = 0, False
-
             state = self.env.reset()
 
             while not done:
@@ -163,11 +146,11 @@ class Agent:
                     v_values = self.critic.model.predict(states)
                     next_v_value = self.critic.model.predict(next_state[np.newaxis])
                     gaes, td_targets = self.gae_target(rewards, v_values, next_v_value, done)
-                    self.update_actor()
 
                     for epoch in range(args.epochs):
                         actor_loss = self.actor.train(states, actions, gaes)
                         critic_loss = self.critic.model.train_on_batch(states, td_targets)
+                    self.update_actor()
 
                     state_batch = []
                     action_batch = []
@@ -180,12 +163,22 @@ class Agent:
             # wandb.log({'Reward': episode_reward})
 
 
-def main():
+if __name__ == "__main__":
+    tf.keras.backend.set_floatx('float64')
+    # wandb.init(name='PPO', project="deep-rl-tf2")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--update_interval', type=int, default=5)
+    parser.add_argument('--actor_lr', type=float, default=0.1)
+    parser.add_argument('--critic_lr', type=float, default=0.2)
+    parser.add_argument('--clip_ratio', type=float, default=0.1)
+    parser.add_argument('--lmbda', type=float, default=0.95)
+    parser.add_argument('--epochs', type=int, default=10)
+
+    args = parser.parse_args()
+
     env_name = 'Pendulum-v0'
     env = gym.make(env_name)
     agent = Agent(env)
-    agent.train()
-
-
-if __name__ == "__main__":
-    main()
+    agent.train(max_episodes=1000)
