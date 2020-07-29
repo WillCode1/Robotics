@@ -15,6 +15,7 @@ class Actor:
         self.model = self.create_model()
         self.old_model = self.create_model()
         self.opt = keras.optimizers.Adam(args.actor_lr)
+        self.args = args
 
     def create_model(self):
         return tf.keras.Sequential([
@@ -35,14 +36,14 @@ class Actor:
         old_log_p = tf.stop_gradient(old_log_p)
         log_p = tf.math.log(tf.reduce_sum(new_policy * actions))
         ratio = tf.math.exp(log_p - old_log_p)
-        clipped_ratio = tf.clip_by_value(ratio, 1 - args.clip_ratio, 1 + args.clip_ratio)
+        clipped_ratio = tf.clip_by_value(ratio, 1 - self.args.clip_ratio, 1 + self.args.clip_ratio)
         surrogate = -tf.minimum(ratio * gaes, clipped_ratio * gaes)
         return tf.reduce_mean(surrogate)
 
     def train(self, states, actions, gaes):
         actions = tf.one_hot(actions, self.action_dim)
         actions = tf.reshape(actions, [-1, self.action_dim])
-        actions = tf.cast(actions, tf.float64)
+        # actions = tf.cast(actions, tf.float64)
         old_policy = self.old_model.predict(states)
 
         with tf.GradientTape() as tape:
@@ -50,7 +51,7 @@ class Actor:
             loss = self.compute_loss(old_policy, logits, actions, gaes)
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.opt.apply_gradients(zip(grads, self.model.trainable_variables))
-        return loss
+        return loss.numpy()
 
 
 class Critic:
@@ -58,6 +59,7 @@ class Critic:
         self.state_dim = state_dim
         self.model = self.create_model()
         self.model.compile(loss="mse", optimizer=keras.optimizers.Adam(lr=args.critic_lr))
+        self.args = args
 
     def create_model(self):
         return tf.keras.Sequential([
@@ -74,6 +76,7 @@ class Agent:
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
+        self.args = args
 
         self.actor = Actor(self.state_dim, self.action_dim, args)
         self.critic = Critic(self.state_dim, args)
@@ -95,8 +98,8 @@ class Agent:
             next_v_val = next_v_value
 
         for k in reversed(range(0, len(rewards))):
-            advantage = rewards[k] + args.gamma * next_v_val - v_values[k]
-            gae_cumulative = args.gamma * args.lmbda * gae_cumulative + advantage
+            advantage = rewards[k] + self.args.gamma * next_v_val - v_values[k]
+            gae_cumulative = self.args.gamma * self.args.lmbda * gae_cumulative + advantage
             gae[k] = gae_cumulative
             td_targets[k] = gae[k] + v_values[k]
             next_v_val = v_values[k]
@@ -120,7 +123,7 @@ class Agent:
                 action_batch.append(action)
                 reward_batch.append([reward])
 
-                if len(state_batch) >= args.update_interval or done:
+                if len(state_batch) >= self.args.update_interval or done:
                     states = np.array(state_batch)
                     actions = np.array(action_batch)
                     rewards = np.array(reward_batch)
@@ -129,7 +132,7 @@ class Agent:
                     next_v_value = self.critic.model.predict(next_state[np.newaxis])
                     gaes, td_targets = self.gae_target(rewards, v_values, next_v_value, done)
 
-                    for epoch in range(args.epochs):
+                    for epoch in range(self.args.epochs):
                         actor_loss = self.actor.train(states, actions, gaes)
                         critic_loss = self.critic.model.train_on_batch(states, td_targets)
                     self.update_actor()

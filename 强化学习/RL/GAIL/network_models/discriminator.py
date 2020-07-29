@@ -60,9 +60,9 @@ class Discriminator:
         :param agent_a:
         :return:
         """
-        prob_agent = self.agent_model.predict([agent_s[np.newaxis], agent_a[np.newaxis]])
-        reward = np.log(np.clip(prob_agent[0], 1e-10, 1))
-        return reward[0]
+        prob_agent = self.agent_model.predict([agent_s, agent_a])
+        reward = np.log(np.clip(prob_agent, 1e-10, 1))
+        return reward
 
 
 if __name__ == "__main__":
