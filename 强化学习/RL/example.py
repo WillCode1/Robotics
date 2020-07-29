@@ -24,6 +24,10 @@ keras.layers.BatchNormalization()
 X_train = []
 lr = 0.01
 s = 20 * len(X_train) // 32
+
+embedding = tf.one_hot(X_train, depth=3)
+ground_truth_labels = keras.utils.to_categorical(X_train)
+
 learning_rate = keras.optimizers.schedules.ExponentialDecay(lr, s, 0.1)
 # optimizer = keras.optimizers.Adam(learning_rate)
 optimizer = keras.optimizers.Adam(learning_rate, clipvalue=1.0)
