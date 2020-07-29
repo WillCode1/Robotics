@@ -62,6 +62,7 @@ def main(args):
             else:
                 obs = next_obs
 
+        print(sum(rewards))
         if sum(rewards) >= 475:
             success_num += 1
             if success_num >= 100:
@@ -84,9 +85,9 @@ def main(args):
         # train policy
         for epoch in range(10):
             actor_loss = agent.actor.train(observations, actions, gaes)
-            print(actor_loss)
+            # print(actor_loss)
             critic_loss = agent.critic.model.train_on_batch(observations, td_targets)
-            print(critic_loss)
+            # print(critic_loss/len(observations))
 
 
 if __name__ == '__main__':
