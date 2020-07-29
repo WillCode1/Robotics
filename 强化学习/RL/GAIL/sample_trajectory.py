@@ -28,7 +28,7 @@ def argparser():
 
 
 def main(args):
-    env = gym.make('CartPole-v0')
+    env = gym.make('CartPole-v1')
     env.seed(0)
     ob_space = env.observation_space
     actor = Actor(env.observation_space.shape[0], env.action_space.n, args)

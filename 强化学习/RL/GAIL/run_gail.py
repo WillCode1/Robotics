@@ -17,8 +17,8 @@ def argparser():
 
 
 def main(args):
-    env = gym.make('CartPole-v0')
-    env.seed(0)
+    env = gym.make('CartPole-v1')
+    env.seed(42)
     ob_space = env.observation_space
     Policy = Policy_net('policy', env)
     Old_Policy = Policy_net('old_policy', env)

@@ -43,17 +43,15 @@ class Discriminator:
         return model
 
     def train(self, expert_s, expert_a, agent_s, agent_a):
-        # prob_expert, prob_agent = self.model.predict([expert_s, expert_a, agent_s, agent_a])
-        prob_expert, prob_agent = self.model([expert_s, expert_a, agent_s, agent_a])
-
         with tf.GradientTape() as tape:
+            prob_expert, prob_agent = self.model([expert_s, expert_a, agent_s, agent_a])
             loss_expert = tf.reduce_mean(tf.math.log(tf.clip_by_value(prob_expert, 0.01, 1)))
             loss_agent = tf.reduce_mean(tf.math.log(tf.clip_by_value(1 - prob_agent, 0.01, 1)))
             loss = loss_expert + loss_agent
             loss = -loss
         grad = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grad, self.model.trainable_variables))
-        return loss
+        return loss.numpy()
 
     def get_rewards(self, agent_s, agent_a):
         """
@@ -63,8 +61,8 @@ class Discriminator:
         :return:
         """
         prob_agent = self.agent_model.predict([agent_s[np.newaxis], agent_a[np.newaxis]])
-        reward = tf.math.log(tf.clip_by_value(prob_agent[0], 1e-10, 1))
-        return reward.numpy()[0]
+        reward = np.log(np.clip(prob_agent[0], 1e-10, 1))
+        return reward[0]
 
 
 if __name__ == "__main__":
@@ -76,10 +74,13 @@ if __name__ == "__main__":
     expert_s, expert_a = (1, 1, 1, 1), (1,)
     agent_s, agent_a = (1, 1, 1, 1), (1,)
 
-    expert_s = np.array(expert_s)[np.newaxis]
+    expert_s = np.array(expert_s, dtype='float32')[np.newaxis]
     expert_a = np.array(expert_a, dtype='int32')[np.newaxis]
-    agent_s = np.array(agent_s)[np.newaxis]
+    agent_s = np.array(agent_s, dtype='float32')[np.newaxis]
     agent_a = np.array(agent_a, dtype='int32')[np.newaxis]
+
+    reward = algo.get_rewards(agent_s[0], agent_a[0])
+    print(reward)
 
     loss = algo.train(expert_s, expert_a, agent_s, agent_a)
     print(loss)
