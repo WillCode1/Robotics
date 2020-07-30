@@ -132,8 +132,9 @@ with tf.name_scope('train'):
     ])
 
     discriminator.compile(loss="binary_crossentropy", optimizer="RMSprop")
+    # discriminator.compile(loss=keras.losses.KLDivergence(), optimizer="RMSprop")
     discriminator.trainable = False
-    generator = keras.models.load_model("generator_fashion_mnist_model.h5")
+    # generator = keras.models.load_model("generator_fashion_mnist_model.h5")
     gan = keras.models.Sequential([generator, discriminator])
 
     gan.compile(loss="binary_crossentropy", optimizer="RMSprop")
