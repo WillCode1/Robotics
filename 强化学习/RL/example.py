@@ -1,5 +1,7 @@
 from tensorflow import keras
 import tensorflow as tf
+import random
+import numpy as np
 
 model = keras.models.Sequential([
     # 将输入转换为7 x 7 128通道的feature map
@@ -21,7 +23,7 @@ loss_fn = keras.losses.Huber()
 keras.layers.LeakyReLU(0.2)
 keras.layers.BatchNormalization()
 
-X_train = []
+X_train = np.array([1])
 lr = 0.01
 s = 20 * len(X_train) // 32
 
@@ -43,3 +45,7 @@ early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, r
 save_model = keras.callbacks.ModelCheckpoint("my_keras_model.h5", save_best_only=True, save_weights_only=True)
 
 noise = tf.random.normal(shape=[64, 128])
+
+index = [i for i in range(len(X_train))]
+random.shuffle(index)
+image_org = X_train[index]

@@ -41,7 +41,7 @@ class Discriminator:
 
     def get_rewards(self, states, actions):
         prob_agent = self.model.predict([states, actions])
-        reward = -np.log(np.clip(prob_agent, 1e-10, 1))
+        reward = np.log(np.clip(prob_agent, 1e-10, 1))
         return reward
 
 

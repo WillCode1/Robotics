@@ -1,6 +1,7 @@
 import argparse
 import gym
 import numpy as np
+import random
 import tensorflow as tf
 from GAIL.network_models.PPO_Discrete import Agent
 from GAIL.network_models.discriminator import Discriminator
@@ -13,8 +14,8 @@ def argparser():
     parser.add_argument('--iteration', default=int(1e4))
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--update_interval', type=int, default=5)
-    parser.add_argument('--actor_lr', type=float, default=0.005)
-    parser.add_argument('--critic_lr', type=float, default=0.01)
+    parser.add_argument('--actor_lr', type=float, default=0.0005)
+    parser.add_argument('--critic_lr', type=float, default=0.001)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--lmbda', type=float, default=0.95)
     parser.add_argument('--epochs', type=int, default=3)
@@ -26,7 +27,7 @@ def main(args):
     env.seed(42)
 
     agent = Agent(env, args)
-    discriminator = Discriminator(env, lr=0.01)
+    discriminator = Discriminator(env, lr=0.001)
 
     # 得到专家的观测和行动
     expert_observations = np.genfromtxt('trajectory/observations.csv')
@@ -75,29 +76,25 @@ def main(args):
         observations = np.array(observations)
         actions = np.array(actions).astype(dtype=np.int32)
 
-        # for i in range(5):
-        while True:
-            loss = discriminator.train(expert_s=expert_observations, expert_a=expert_actions,
+        index = [i for i in range(len(observations))]
+        random.shuffle(index)
+        expert_obs = expert_observations[index]
+        expert_act = expert_actions[index]
+
+        for i in range(5):
+            loss = discriminator.train(expert_s=expert_obs, expert_a=expert_act,
                                        agent_s=observations, agent_a=actions)
             # print('loss:', loss)
-            if loss < 1:
-                break
 
         d_rewards = discriminator.get_rewards(states=observations, actions=actions)
         gaes, td_targets = agent.gae_target(d_rewards, v_preds, v_preds_next, done)
 
         # train policy
         for epoch in range(10):
-        # while True:
             actor_loss = agent.actor.train(observations, actions, gaes)
             # print('actor_loss:', actor_loss)
-            if actor_loss < 10:
-                break
-        while True:
             critic_loss = agent.critic.model.train_on_batch(observations, td_targets)
             # print('critic_loss', critic_loss/len(observations))
-            if critic_loss/len(observations) < 10:
-                break
 
 
 if __name__ == '__main__':
