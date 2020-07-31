@@ -167,7 +167,7 @@ class Agent:
         critic_network.compile(optimizer='Adam', loss='mean_squared_error')
         return critic_network
 
-    def update_tartget_network(self):
+    def update_target_network(self):
         """Softupdate of the target network.
         In ppo, the updates of the
         """
@@ -207,7 +207,7 @@ class Agent:
         self.actor_network.fit(x=[states, gae_advantages, batch_old_prediction], y=actions, verbose=0)
         self.critic_network.fit(x=states, y=discounted_rewards, epochs=1, verbose=0)
         # soft update the target network(aka actor_old).
-        self.update_tartget_network()
+        self.update_target_network()
 
     def store_transition(self, s, a, r):
         """Store the experiences transtions into memory object.

@@ -1,4 +1,4 @@
-# import wandb
+import wandb
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense
 
@@ -8,7 +8,7 @@ import numpy as np
 
 tf.keras.backend.set_floatx('float64')
 
-# wandb.init(name='A2C', project="deep-rl-tf2")
+wandb.init(name='A2C', project="deep-rl-tf2")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gamma', type=float, default=0.99)
@@ -61,7 +61,7 @@ class Critic:
             Dense(32, activation='relu'),
             Dense(16, activation='relu'),
             Dense(16, activation='relu'),
-            Dense(1, activation='linear')
+            Dense(1)
         ])
 
     def compute_loss(self, v_pred, td_targets):
@@ -123,7 +123,7 @@ class Agent:
                 next_state = np.reshape(next_state, [1, self.state_dim])
                 reward = np.reshape(reward, [1, 1])
 
-                td_target = self.td_target(reward * 0.01, next_state, done)
+                td_target = self.td_target(reward, next_state, done)
                 advantage = self.advatnage(td_target, self.critic.model.predict(state))
 
                 state_batch.append(state)
@@ -149,7 +149,7 @@ class Agent:
                 state = next_state[0]
 
             print('EP{} EpisodeReward={}'.format(ep, episode_reward))
-            # wandb.log({'Reward': episode_reward})
+            wandb.log({'Reward': episode_reward})
 
 
 def main():

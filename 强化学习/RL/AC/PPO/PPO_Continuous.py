@@ -39,8 +39,9 @@ class Actor:
     def log_pdf(self, mu, std, action):
         std = tf.clip_by_value(std, 1e-2, 1.0)
         variance = std ** 2
-        pdf = 1. / tf.sqrt(2. * np.pi * variance) * tf.exp(-(action - mu) ** 2 / (2. * variance))
-        log_pdf = tf.math.log(pdf + 1e-10)
+        # pdf = 1. / tf.sqrt(2. * np.pi * variance) * tf.exp(-(action - mu) ** 2 / (2. * variance))
+        # log_pdf = tf.math.log(pdf + 1e-10)
+        log_pdf = -0.5 * (action - mu) ** 2 / variance - 0.5 * tf.math.log(variance * 2 * np.pi)
         return tf.reduce_sum(log_pdf, 1, keepdims=True)
 
     def compute_loss(self, states, actions, gaes):
@@ -101,7 +102,7 @@ class Agent:
 
     def update_actor(self):
         for model_weight, target_weight in zip(self.actor.model.weights, self.actor.old_model.weights):
-            target_weight.assign(model_weight)
+            target_weight.assign(model_weight * 0.1 + target_weight * 0.9)
 
     def gae_target(self, rewards, v_values, next_v_value, done):
         td_targets = np.zeros_like(rewards)

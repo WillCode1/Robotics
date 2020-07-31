@@ -1,4 +1,4 @@
-# import wandb
+import wandb
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Dense, Lambda
 
@@ -8,7 +8,7 @@ import numpy as np
 
 tf.keras.backend.set_floatx('float64')
 
-# wandb.init(name='A2C', project="deep-rl-tf2")
+wandb.init(name='A2C', project="deep-rl-tf2")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gamma', type=float, default=0.99)
@@ -45,10 +45,11 @@ class Actor:
 
     def log_pdf(self, mu, std, action):
         std = tf.clip_by_value(std, self.std_bound[0], self.std_bound[1])
-        var = std ** 2
-        log_policy_pdf = -0.5 * (action - mu) ** 2 / \
-            var - 0.5 * tf.math.log(var * 2 * np.pi)
-        return tf.reduce_sum(log_policy_pdf, 1, keepdims=True)
+        variance = std ** 2
+        # log_policy_pdf = -0.5 * (action - mu) ** 2 / var - 0.5 * tf.math.log(var * 2 * np.pi)
+        pdf = 1. / tf.sqrt(2. * np.pi * variance) * tf.exp(-(action - mu) ** 2 / (2. * variance))
+        log_pdf = tf.math.log(pdf + 1e-10)
+        return tf.reduce_sum(log_pdf, 1, keepdims=True)
 
     def compute_loss(self, mu, std, actions, advantages):
         log_policy_pdf = self.log_pdf(mu, std, actions)
@@ -76,7 +77,7 @@ class Critic:
             Dense(32, activation='relu'),
             Dense(32, activation='relu'),
             Dense(16, activation='relu'),
-            Dense(1, activation='linear')
+            Dense(1)
         ])
 
     def compute_loss(self, v_pred, td_targets):
@@ -101,15 +102,13 @@ class Agent:
         self.action_bound = self.env.action_space.high[0]
         self.std_bound = [1e-2, 1.0]
         
-        self.actor = Actor(self.state_dim, self.action_dim,
-                           self.action_bound, self.std_bound)
+        self.actor = Actor(self.state_dim, self.action_dim, self.action_bound, self.std_bound)
         self.critic = Critic(self.state_dim)
 
     def td_target(self, reward, next_state, done):
         if done:
             return reward
-        v_value = self.critic.model.predict(
-            np.reshape(next_state, [1, self.state_dim]))
+        v_value = self.critic.model.predict(np.reshape(next_state, [1, self.state_dim]))
         return np.reshape(reward + args.gamma * v_value[0], [1, 1])
 
     def advatnage(self, td_targets, baselines):
@@ -143,9 +142,8 @@ class Agent:
                 next_state = np.reshape(next_state, [1, self.state_dim])
                 reward = np.reshape(reward, [1, 1])
 
-                td_target = self.td_target((reward+8)/8, next_state, done)
-                advantage = self.advatnage(
-                    td_target, self.critic.model.predict(state))
+                td_target = self.td_target(reward, next_state, done)
+                advantage = self.advatnage(td_target, self.critic.model.predict(state))
 
                 state_batch.append(state)
                 action_batch.append(action)
@@ -170,7 +168,7 @@ class Agent:
                 state = next_state[0]
 
             print('EP{} EpisodeReward={}'.format(ep, episode_reward))
-            # wandb.log({'Reward': episode_reward})
+            wandb.log({'Reward': episode_reward})
 
 
 def main():
