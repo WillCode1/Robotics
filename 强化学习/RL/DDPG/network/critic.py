@@ -16,7 +16,7 @@ class Critic:
         self.target_model = self.create_model()
         self.target_model.set_weights(self.model.get_weights())
 
-        loss_fn = keras.losses.Huber()
+        loss_fn = keras.losses.mean_squared_error
         self.model.compile(loss=loss_fn, optimizer=keras.optimizers.Adam(lr=lr))
         self.target_model.compile(loss=loss_fn, optimizer=keras.optimizers.Adam(lr=lr))
 

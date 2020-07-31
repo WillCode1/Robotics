@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    env_name = 'Acrobot-v1'
+    env_name = 'CartPole-v1'
     env = gym.make(env_name)
     agent = Agent(env)
     agent.train(max_episodes=1000)
