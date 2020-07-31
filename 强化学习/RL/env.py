@@ -9,6 +9,7 @@ import gym
 'Pendulum-v0'
 "MountainCarContinuous-v0"
 # ==========================
+# CNN
 "Breakout-v0"
 # ==========================
 # pip install box2d
