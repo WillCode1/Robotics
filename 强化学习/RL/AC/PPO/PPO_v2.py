@@ -76,7 +76,8 @@ class PPO2:
             std = tf.clip_by_value(std, 1e-10, 10.0)
             act_probs = 1. / tf.sqrt(2. * np.pi * std ** 2) * tf.exp(-(actions - mu) ** 2 / (2. * std ** 2))
             entropy = -tf.reduce_sum(act_probs * tf.math.log(tf.clip_by_value(act_probs, 1e-10, 1.0)))
-            loss = critic_loss + 0.5 * actor_loss - 0.01 * entropy
+            loss = critic_loss + 0.5 * actor_loss - args.entropy_ratio * entropy
+            # loss = 0.5 * critic_loss + actor_loss - args.entropy_ratio * entropy
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.opt.apply_gradients(zip(grads, self.model.trainable_variables))
         return loss
@@ -163,6 +164,7 @@ if __name__ == "__main__":
     parser.add_argument('--update_interval', type=int, default=128)
     parser.add_argument('--lr', type=float, default=2e-3)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
+    parser.add_argument('--entropy_ratio', type=float, default=0.01)
     parser.add_argument('--lmbda', type=float, default=0.95)
     parser.add_argument('--epochs', type=int, default=3)    # 大于5，容易过拟合，不收敛
 
