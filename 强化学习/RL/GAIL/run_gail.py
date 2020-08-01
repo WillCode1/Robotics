@@ -115,5 +115,7 @@ def main(args):
 
 
 if __name__ == '__main__':
+    tf.keras.backend.set_floatx('float64')
+
     args = argparser()
     main(args)

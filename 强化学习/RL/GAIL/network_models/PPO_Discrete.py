@@ -43,7 +43,7 @@ class Actor:
     def train(self, states, actions, gaes):
         actions = tf.one_hot(actions, self.action_dim)
         actions = tf.reshape(actions, [-1, self.action_dim])
-        # actions = tf.cast(actions, tf.float64)
+        actions = tf.cast(actions, tf.float64)
         old_policy = self.old_model.predict(states)
 
         with tf.GradientTape() as tape:
@@ -123,7 +123,7 @@ class Agent:
                 action_batch.append(action)
                 reward_batch.append([reward])
 
-                if len(state_batch) >= self.args.update_interval or done:
+                if len(state_batch) >= self.args.batch_size or done:
                     states = np.array(state_batch)
                     actions = np.array(action_batch)
                     rewards = np.array(reward_batch)
@@ -155,9 +155,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--update_interval', type=int, default=5)
-    parser.add_argument('--actor_lr', type=float, default=0.05)
-    parser.add_argument('--critic_lr', type=float, default=0.1)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--actor_lr', type=float, default=5e-4)
+    parser.add_argument('--critic_lr', type=float, default=1e-3)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--lmbda', type=float, default=0.95)
     parser.add_argument('--epochs', type=int, default=3)

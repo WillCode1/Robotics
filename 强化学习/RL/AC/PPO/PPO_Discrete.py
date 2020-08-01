@@ -75,8 +75,6 @@ class Agent:
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
 
-        self.actor_opt = tf.keras.optimizers.Adam(args.actor_lr)
-        self.critic_opt = tf.keras.optimizers.Adam(args.critic_lr)
         self.actor = Actor(self.state_dim, self.action_dim)
         self.critic = Critic(self.state_dim)
 
@@ -119,7 +117,7 @@ class Agent:
                 action_batch.append(action)
                 reward_batch.append([reward])
 
-                if len(state_batch) >= args.update_interval or done:
+                if len(state_batch) >= args.batch_size or done:
                     states = np.array(state_batch)
                     actions = np.array(action_batch)
                     rewards = np.array(reward_batch)
@@ -150,9 +148,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--update_interval', type=int, default=5)
-    parser.add_argument('--actor_lr', type=float, default=0.0005)
-    parser.add_argument('--critic_lr', type=float, default=0.001)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--actor_lr', type=float, default=5e-4)
+    parser.add_argument('--critic_lr', type=float, default=1e-3)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--lmbda', type=float, default=0.95)
     parser.add_argument('--epochs', type=int, default=3)

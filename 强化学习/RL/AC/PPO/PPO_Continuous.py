@@ -21,8 +21,8 @@ class Actor:
 
     def create_model(self):
         state_input = Input((self.state_dim,))
-        x = Dense(32, activation='relu')(state_input)
-        x = Dense(32, activation='relu')(x)
+        x = Dense(32, activation=keras.layers.LeakyReLU(0.2))(state_input)
+        x = Dense(32, activation=keras.layers.LeakyReLU(0.2))(x)
         mu = Dense(self.action_dim, activation='tanh')(x)
         mu = Lambda(lambda x: x * self.action_bound)(mu)
         std = Dense(self.action_dim, activation='softplus')(x)
@@ -39,9 +39,9 @@ class Actor:
     def log_pdf(self, mu, std, action):
         std = tf.clip_by_value(std, 1e-2, 1.0)
         variance = std ** 2
-        # pdf = 1. / tf.sqrt(2. * np.pi * variance) * tf.exp(-(action - mu) ** 2 / (2. * variance))
-        # log_pdf = tf.math.log(pdf + 1e-10)
-        log_pdf = -0.5 * (action - mu) ** 2 / variance - 0.5 * tf.math.log(variance * 2 * np.pi)
+        pdf = 1. / tf.sqrt(2. * np.pi * variance) * tf.exp(-(action - mu) ** 2 / (2. * variance))
+        log_pdf = tf.math.log(pdf + 1e-10)
+        # log_pdf = -0.5 * (action - mu) ** 2 / variance - 0.5 * tf.math.log(variance * 2 * np.pi)
         return tf.reduce_sum(log_pdf, 1, keepdims=True)
 
     def compute_loss(self, states, actions, gaes):
@@ -81,9 +81,8 @@ class Critic:
     def create_model(self):
         return tf.keras.Sequential([
             Input((self.state_dim,)),
-            Dense(32, activation='relu'),
-            Dense(32, activation='relu'),
-            Dense(16, activation='relu'),
+            Dense(32, activation=keras.layers.LeakyReLU(0.2)),
+            Dense(32, activation=keras.layers.LeakyReLU(0.2)),
             Dense(1)
         ])
 
@@ -95,14 +94,13 @@ class Agent:
         self.action_dim = self.env.action_space.shape[0]
         self.action_bound = self.env.action_space.high[0]
 
-        self.actor_opt = tf.keras.optimizers.Adam(args.actor_lr)
-        self.critic_opt = tf.keras.optimizers.Adam(args.critic_lr)
         self.actor = Actor(self.state_dim, self.action_dim, self.action_bound)
         self.critic = Critic(self.state_dim)
 
     def update_actor(self):
         for model_weight, target_weight in zip(self.actor.model.weights, self.actor.old_model.weights):
-            target_weight.assign(model_weight * 0.1 + target_weight * 0.9)
+            # target_weight.assign(model_weight * 0.1 + target_weight * 0.9)
+            target_weight.assign(model_weight)
 
     def gae_target(self, rewards, v_values, next_v_value, done):
         td_targets = np.zeros_like(rewards)
@@ -137,7 +135,7 @@ class Agent:
 
                 state_batch.append(state)
                 action_batch.append(action)
-                reward_batch.append([reward])
+                reward_batch.append([(reward+8)/8])
 
                 if len(state_batch) >= args.update_interval or done:
                     states = np.array(state_batch)
@@ -170,12 +168,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--update_interval', type=int, default=5)
-    parser.add_argument('--actor_lr', type=float, default=0.1)
-    parser.add_argument('--critic_lr', type=float, default=0.2)
+    parser.add_argument('--update_interval', type=int, default=128)
+    parser.add_argument('--actor_lr', type=float, default=1.5e-3)
+    parser.add_argument('--critic_lr', type=float, default=3e-3)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--lmbda', type=float, default=0.95)
-    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--epochs', type=int, default=3)    # 大于5，容易过拟合，不收敛
 
     args = parser.parse_args()
 

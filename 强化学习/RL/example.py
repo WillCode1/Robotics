@@ -18,11 +18,6 @@ model = keras.models.Sequential([
     keras.layers.Reshape([28, 28, 1])
 ])
 
-kl = tf.keras.losses.KLDivergence()
-loss_fn = keras.losses.Huber()
-keras.layers.LeakyReLU(0.2)
-keras.layers.BatchNormalization()
-
 X_train = np.array([1])
 lr = 0.01
 s = 20 * len(X_train) // 32
@@ -49,3 +44,17 @@ noise = tf.random.normal(shape=[64, 128])
 index = [i for i in range(len(X_train))]
 random.shuffle(index)
 image_org = X_train[index]
+
+# ========================
+lr = 3e-3           # most important
+batch_size = 128    # big
+
+kl = tf.keras.losses.KLDivergence()
+loss_fn = keras.losses.Huber()
+loss_fn = keras.losses.mean_squared_error
+
+keras.layers.LeakyReLU(0.2)
+keras.layers.tanh()
+keras.layers.BatchNormalization()
+
+"RMSprop"
