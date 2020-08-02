@@ -131,7 +131,7 @@ class Agent:
                 action_batch.append(action)
                 reward_batch.append([(reward+8)/8])
 
-                if len(state_batch) >= args.update_interval or done:
+                if len(state_batch) >= args.batch_size or done:
                     states = np.array(state_batch)
                     actions = np.array(action_batch)
                     rewards = np.array(reward_batch)
@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--update_interval', type=int, default=128)
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--lr', type=float, default=2e-3)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--entropy_ratio', type=float, default=0.01)

@@ -3,7 +3,7 @@ import gym
 import numpy as np
 import random
 import tensorflow as tf
-from GAIL.network_models.PPO_Discrete import Agent
+from GAIL.network_models.PPO_Discrete_v2 import Agent
 from GAIL.network_models.discriminator import Discriminator
 
 
@@ -30,8 +30,8 @@ def main(args):
 
         while True:
             run_policy_steps += 1
-            act = agent.actor.get_action(state=obs)
-            v_pred = agent.critic.model.predict(obs[np.newaxis])[0][0]
+            act = agent.ppo.get_action(state=obs)
+            _, v_pred = agent.ppo.model.predict(obs[np.newaxis])[0][0]
 
             next_obs, reward, done, info = env.step(act)
 
@@ -41,7 +41,7 @@ def main(args):
             v_preds.append(v_pred)
 
             if done:
-                v_pred = agent.critic.model.predict(next_obs[np.newaxis])[0][0]
+                _, v_pred = agent.ppo.model.predict(next_obs[np.newaxis])[0][0]
                 v_preds_next = v_preds[1:] + [v_pred]
                 obs = env.reset()
                 break
@@ -79,10 +79,8 @@ def main(args):
 
         # train policy
         for epoch in range(5):
-            actor_loss = agent.actor.train(observations, actions, gaes)
+            loss = agent.ppo.train_on_batch(observations, actions, gaes, td_targets)
             # print('actor_loss:', actor_loss)
-            critic_loss = agent.critic.model.train_on_batch(observations, td_targets)
-            # print('critic_loss', critic_loss/len(observations))
 
 
 if __name__ == '__main__':
@@ -92,11 +90,11 @@ if __name__ == '__main__':
     parser.add_argument('--savedir', help='save directory', default='models/gail')
     parser.add_argument('--iteration', default=int(1e4))
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--update_interval', type=int, default=5)
-    parser.add_argument('--actor_lr', type=float, default=0.0005)
-    parser.add_argument('--critic_lr', type=float, default=0.001)
-    parser.add_argument('--discriminator_lr', type=float, default=0.001)
+    # parser.add_argument('--update_interval', type=int, default=5)
+    parser.add_argument('--lr', type=float, default=0.0001)
+    parser.add_argument('--discriminator_lr', type=float, default=0.01)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
+    parser.add_argument('--entropy_ratio', type=float, default=0.01)
     parser.add_argument('--lmbda', type=float, default=0.95)
     parser.add_argument('--epochs', type=int, default=3)
 
