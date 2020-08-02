@@ -173,4 +173,4 @@ if __name__ == "__main__":
     env_name = 'Pendulum-v0'
     env = gym.make(env_name)
     agent = Agent(env)
-    agent.train(max_episodes=1000)
+    agent.train(max_episodes=2000)
