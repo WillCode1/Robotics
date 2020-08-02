@@ -70,7 +70,7 @@ def main(args):
         act = np.concatenate([expert_act, actions])
         label = np.array([1.] * len(observations) + [0.] * len(observations))
 
-        for i in range(10):
+        for i in range(5):
             loss = discriminator.model.train_on_batch([obser, act], label)
             # print('loss:', loss)
 
@@ -78,7 +78,7 @@ def main(args):
         gaes, td_targets = agent.gae_target(d_rewards, v_preds, v_preds_next, done)
 
         # train policy
-        for epoch in range(10):
+        for epoch in range(5):
             actor_loss = agent.actor.train(observations, actions, gaes)
             # print('actor_loss:', actor_loss)
             critic_loss = agent.critic.model.train_on_batch(observations, td_targets)
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--update_interval', type=int, default=5)
     parser.add_argument('--actor_lr', type=float, default=0.0005)
     parser.add_argument('--critic_lr', type=float, default=0.001)
-    parser.add_argument('--discriminator_lr', type=float, default=0.1)
+    parser.add_argument('--discriminator_lr', type=float, default=0.001)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--lmbda', type=float, default=0.95)
     parser.add_argument('--epochs', type=int, default=3)
