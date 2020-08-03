@@ -22,3 +22,6 @@ import gym
 # env_name = 'FetchPush-v1'
 env_name = 'CarRacing-v0'
 env = gym.make(env_name)
+obs = env.reset()
+env.render()
+env.close()
