@@ -24,8 +24,9 @@ class DQN:
 
     def create_model(self, state_dim, action_dim):
         K = keras.backend
-        input_states = keras.layers.Input(shape=[state_dim])
-        x = keras.layers.Dense(32, activation="elu")(input_states)
+        input_states = keras.layers.Input(shape=state_dim)
+        x = keras.layers.Flatten()(input_states)
+        x = keras.layers.Dense(32, activation="elu")(x)
         x = keras.layers.Dense(32, activation="elu")(x)
         state_values = keras.layers.Dense(1)(x)
         raw_advantages = keras.layers.Dense(action_dim)(x)
