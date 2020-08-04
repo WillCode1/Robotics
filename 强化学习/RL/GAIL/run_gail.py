@@ -70,7 +70,7 @@ def main(args):
         act = np.concatenate([expert_act, actions])
         label = np.array([1.] * len(observations) + [0.] * len(observations))
 
-        for i in range(5):
+        for i in range(3):
             loss = discriminator.model.train_on_batch([obser, act], label)
             # print('loss:', loss)
 
@@ -78,9 +78,10 @@ def main(args):
         gaes, td_targets = agent.gae_target(d_rewards, v_preds, v_preds_next, done)
 
         # train policy
-        for epoch in range(5):
-            loss = agent.ppo.train_on_batch(observations, actions, gaes, td_targets)
-            # print('actor_loss:', actor_loss)
+        if iteration % 10 == 0:
+            for epoch in range(10):
+                loss = agent.ppo.train_on_batch(observations, actions, gaes, td_targets)
+                # print('actor_loss:', actor_loss)
 
 
 if __name__ == '__main__':
@@ -91,8 +92,8 @@ if __name__ == '__main__':
     parser.add_argument('--iteration', default=int(1e4))
     parser.add_argument('--gamma', type=float, default=0.99)
     # parser.add_argument('--update_interval', type=int, default=5)
-    parser.add_argument('--lr', type=float, default=0.0001)
-    parser.add_argument('--discriminator_lr', type=float, default=0.01)
+    parser.add_argument('--lr', type=float, default=3e-4)
+    parser.add_argument('--discriminator_lr', type=float, default=3e-4)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--entropy_ratio', type=float, default=0.01)
     parser.add_argument('--lmbda', type=float, default=0.95)

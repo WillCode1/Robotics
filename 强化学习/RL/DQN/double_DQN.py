@@ -55,10 +55,10 @@ class DQN:
         states, actions, rewards, next_states, dones = experiences
         next_Q_values = self.model.predict(next_states)
         best_next_actions = np.argmax(next_Q_values, axis=1)
-        next_mask = tf.one_hot(best_next_actions, action_dim).numpy()
+        next_mask = tf.one_hot(best_next_actions, self.action_dim).numpy()
         next_best_Q_values = (self.target.predict(next_states) * next_mask).sum(axis=1)
         target_Q_values = (rewards + (1 - dones) * self.gamma * next_best_Q_values).reshape(-1, 1)
-        mask = tf.one_hot(actions, action_dim)
+        mask = tf.one_hot(actions, self.action_dim)
         with tf.GradientTape() as tape:
             all_Q_values = self.model(states)
             Q_values = tf.reduce_sum(all_Q_values * mask, axis=1, keepdims=True)
