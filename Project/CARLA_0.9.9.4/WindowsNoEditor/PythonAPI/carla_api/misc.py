@@ -154,13 +154,12 @@ def compute_cos_about_waypoint(waypoint, vehicle):
     """
     waypoint_vector = waypoint.transform.rotation.get_forward_vector()
     waypoint_vector = np.array([waypoint_vector.x, waypoint_vector.y])
-    norm_target = np.linalg.norm(waypoint_vector)
 
     velocity = vehicle.get_velocity()
     forward_vector = np.array([velocity.x, velocity.y])
-    norm_forward = np.linalg.norm(forward_vector)
+    norm_forward = np.linalg.norm(forward_vector) + 1e-10
 
-    cos = np.clip(np.dot(forward_vector, waypoint_vector) / (norm_target * norm_forward), -1., 1.)
+    cos = np.clip(np.dot(forward_vector, waypoint_vector) / norm_forward, -1., 1.)
     return cos
 
 

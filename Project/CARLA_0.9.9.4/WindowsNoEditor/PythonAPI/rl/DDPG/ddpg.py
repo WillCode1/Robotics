@@ -46,7 +46,7 @@ class DDPG:
     def policy_action(self, state):
         """ Use the actor to predict value
         """
-        state = (state[0][np.newaxis], state[1][np.newaxis], state[2][np.newaxis])
+        state = (state[0][np.newaxis], state[1][np.newaxis])
         return self.actor.predict(state)[0]
 
     def bellman(self, rewards, q_values, dones):
@@ -139,14 +139,6 @@ class DDPG:
                 self.train(batch_size)
 
             self.save_weights(self.model_path)
-            if episode != 0 and episode % 20 == 0:
-                # Gather stats every episode for plotting
-                mean, stdev = gather_stats(self, env)
-                print('episode {0}: mean={1}'.format(episode, mean))
-                if mean > mean_reward:
-                    mean_reward = mean
-                if if_gather_stats:
-                    results.append([episode, mean, stdev])
 
             # Display score
             tqdm_e.set_description("Score: " + str(total_reward))
@@ -174,6 +166,7 @@ class DDPG:
                 state = new_state
                 total_reward += reward
 
+            env.vehicle.set_autopilot(False)
             env.clear_env()
 
             if len(self.buffer) >= batch_size:

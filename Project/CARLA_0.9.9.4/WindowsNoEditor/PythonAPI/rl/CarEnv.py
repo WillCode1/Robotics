@@ -59,6 +59,10 @@ class CarEnv:
 
         self.client = carla.Client("localhost", 2000)
         self.client.set_timeout(2.0)
+        try:
+            world = self.client.load_world('Town04')
+        except RuntimeError:
+            pass
         self.world = self.client.get_world()
         self.map = self.world.get_map()
 
@@ -83,9 +87,6 @@ class CarEnv:
         np.random.seed(42)
         tf.random.set_seed(42)
 
-    def __del__(self):
-        self.clear_env()
-
     def clear_env(self):
         for actor in self.actor_list:
             actor.destroy()
@@ -108,6 +109,9 @@ class CarEnv:
                 loop = True
 
         self.vehicle.apply_control(carla.VehicleControl(throttle=0.0, brake=0.0))
+        waypoint = self.map.get_waypoint(self.vehicle.get_location())
+        forward_vector = waypoint.transform.rotation.get_forward_vector()*5
+        self.vehicle.set_velocity(forward_vector)
         self.actor_list.append(self.vehicle)
         return vehicle_transform
 
@@ -252,8 +256,6 @@ class CarEnv:
         velocity = get_speed(self.vehicle)
         interval_time = time.time() - self.episode_start
 
-        # self.vehicle.get_acceleration()
-        # self.vehicle.get_angular_velocity()
         current_waypoint = self.map.get_waypoint(self.vehicle.get_location())
         cos = compute_cos_about_waypoint(current_waypoint, self.vehicle)
         kmh = velocity[0] * cos * 3.6
@@ -263,17 +265,20 @@ class CarEnv:
 
         if kmh >= 40:
             done = False
-            reward = 10
+            reward = 1
+        elif kmh < 0:
+            done = False
+            reward = kmh
         else:
             done = False
-            reward = kmh / 4
+            reward = kmh / 40
 
         if len(self.collision_hist) != 0:
             done = True
-            reward = -2000
+            reward = -200
         elif current_waypoint.lane_type != carla.LaneType.Driving:
             done = True
-            reward = -1000
+            reward = -100
 
         if len(self.lane_invasion) != 0:
         #     for lane in self.lane_invasion:
