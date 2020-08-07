@@ -3,7 +3,7 @@ import os
 import tensorflow as tf
 import numpy as np
 from tensorflow import keras
-from DDPG.network.ddpg import DDPG
+from test_env.Humanoid.network.ddpg import DDPG
 from tqdm import tqdm
 from utils.stats import gather_stats
 from utils.networks import OrnsteinUhlenbeckProcess
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     if not os.path.isdir("./models"):
         os.makedirs("./models")
 
-    env = gym.make("Pendulum-v0")
+    env = gym.make("Humanoid-v2")
     state = env.reset()
 
     state_dim = env.observation_space.shape[0]
@@ -82,7 +82,8 @@ if __name__ == "__main__":
                  buffer_size=5000, act_range=act_range, lr=lr, tau=tau, gamma=gamma)
 
     history = play_and_train(agent, env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model,
-                             if_gather_stats=False, if_debug=if_debug)
+                             if_gather_stats=False, if_render=True, if_debug=if_debug)
+    env.close()
 
     # Export results to CSV
     # df = pd.DataFrame(np.array(stats))

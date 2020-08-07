@@ -19,8 +19,9 @@ import gym
 'Ant-v2'
 'Humanoid-v2'
 
+env_name = 'Humanoid-v2'
 # env_name = 'FetchPush-v1'
-env_name = 'CarRacing-v0'
+# env_name = 'CarRacing-v0'
 env = gym.make(env_name)
 obs = env.reset()
 env.render()
