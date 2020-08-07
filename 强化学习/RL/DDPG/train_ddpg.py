@@ -40,7 +40,7 @@ def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
             if len(agent.buffer) >= batch_size:
                 agent.train(batch_size, if_debug=if_debug)
 
-        if episode != 0:
+        if episode != 0 and episode % 100 == 0:
             agent.save_weights(agent.model_path)
 
             # Gather stats every episode for plotting

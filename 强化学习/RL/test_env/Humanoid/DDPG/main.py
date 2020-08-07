@@ -1,9 +1,7 @@
 import gym
 import os
-import tensorflow as tf
 import numpy as np
-from tensorflow import keras
-from test_env.Humanoid.network.ddpg import DDPG
+from test_env.Humanoid.DDPG.network.ddpg import DDPG
 from tqdm import tqdm
 from utils.stats import gather_stats
 from utils.networks import OrnsteinUhlenbeckProcess
@@ -37,10 +35,10 @@ def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
             if if_debug:
                 print("action:{}".format(action[0]))
 
-            if len(agent.buffer) >= batch_size:
-                agent.train(batch_size, if_debug=if_debug)
+        if len(agent.buffer) >= batch_size:
+            agent.train(batch_size, if_debug=if_debug)
 
-        if episode != 0:
+        if episode != 0 and episode % 100 == 0:
             agent.save_weights(agent.model_path)
 
             # Gather stats every episode for plotting
@@ -59,8 +57,8 @@ def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
 
 
 if __name__ == "__main__":
-    if not os.path.isdir("./models"):
-        os.makedirs("./models")
+    if not os.path.isdir("models"):
+        os.makedirs("models")
 
     env = gym.make("Humanoid-v2")
     state = env.reset()
@@ -70,7 +68,7 @@ if __name__ == "__main__":
     act_range = env.action_space.high[0]
 
     batch_size = 128
-    EPISODES = 200
+    EPISODES = 2000
     lr = 1e-1
     tau = 0.01
     gamma = 0.95

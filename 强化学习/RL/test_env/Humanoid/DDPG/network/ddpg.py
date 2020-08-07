@@ -1,9 +1,8 @@
-import sys
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from test_env.Humanoid.network.actor import Actor
-from test_env.Humanoid.network.critic import Critic
+from test_env.Humanoid.DDPG.network.actor import Actor
+from test_env.Humanoid.DDPG.network.critic import Critic
 import random
 from collections import deque
 K = keras.backend
