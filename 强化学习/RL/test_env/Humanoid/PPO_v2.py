@@ -17,11 +17,12 @@ class PPO2:
         self.action_bound = action_bound
         self.model = self.create_model()
         self.old_model = self.create_model()
+        self.old_model.set_weights(self.model.get_weights())
         self.opt = keras.optimizers.Adam(args.lr)
 
     def create_model(self):
         state_input = Input((self.state_dim,))
-        x = Dense(32, activation=keras.layers.LeakyReLU(0.2))(state_input)
+        x = Dense(100, activation=keras.layers.LeakyReLU(0.2))(state_input)
         state_feature = Dense(32, activation=keras.layers.LeakyReLU(0.2))(x)
 
         # critic
@@ -82,19 +83,31 @@ class PPO2:
         self.opt.apply_gradients(zip(grads, self.model.trainable_variables))
         return loss
 
+    def load_weights(self, path):
+        self.model.load_weights(path + 'ppo.h5')
+        self.old_model.load_weights(path + 'ppo.h5')
+
+    def save_weights(self, path):
+        self.model.save_weights(path + 'ppo.h5')
+        self.old_model.save_weights(path + 'ppo.h5')
+
 
 class Agent:
-    def __init__(self, env):
+    def __init__(self, env, path, load_weight=False):
         self.env = env
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.shape[0]
         self.action_bound = self.env.action_space.high[0]
 
         self.ppo = PPO2(self.state_dim, self.action_dim, self.action_bound)
+        self.path = path
+        if load_weight:
+            self.ppo.load_weights(path)
 
     def update_actor(self):
         for model_weight, target_weight in zip(self.ppo.model.weights, self.ppo.old_model.weights):
             target_weight.assign(model_weight)
+        self.ppo.save_weights(self.path)
 
     def gae_target(self, rewards, v_values, next_v_value, done):
         td_targets = np.zeros_like(rewards)
@@ -163,7 +176,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--lr', type=float, default=2e-3)
+    parser.add_argument('--lr', type=float, default=3e-5)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--entropy_ratio', type=float, default=0.01)
     parser.add_argument('--lmbda', type=float, default=0.95)
@@ -171,7 +184,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    import os
+    if not os.path.isdir("models/PPO"):
+        os.makedirs("models/PPO")
+
     env_name = 'Humanoid-v2'
     env = gym.make(env_name)
-    agent = Agent(env)
-    agent.train(max_episodes=2000, if_render=True)
+    agent = Agent(env, path='models/PPO/', load_weight=False)
+    agent.train(max_episodes=30000, if_render=False)

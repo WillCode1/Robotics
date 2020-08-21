@@ -4,6 +4,7 @@ import numpy as np
 from test_env.Humanoid.DDPG.network.ddpg import DDPG
 from tqdm import tqdm
 from utils.stats import gather_stats
+from utils.stats import run_game
 from utils.networks import OrnsteinUhlenbeckProcess
 
 
@@ -14,6 +15,7 @@ def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
 
     history = {'episode': [], 'episode_reward': []}
     # history = {'episode': [], 'episode_reward': [], 'loss': []}
+    best_score = -np.inf
 
     tqdm_e = tqdm(range(n_episode), desc='Score', leave=True, unit=" episodes")
     for episode in tqdm_e:
@@ -38,11 +40,13 @@ def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
         if len(agent.buffer) >= batch_size:
             agent.train(batch_size, if_debug=if_debug)
 
-        if episode != 0 and episode % 100 == 0:
-            agent.save_weights(agent.model_path)
-
+        if episode % 100 == 0:
             # Gather stats every episode for plotting
             mean, stdev = gather_stats(agent, env, 20)
+            if mean > best_score:
+                best_score = mean
+                if best_score != -np.inf:
+                    agent.save_weights(agent.model_path)
             print('episode {0}: mean={1}'.format(episode, mean))
 
         if if_gather_stats:
@@ -57,8 +61,8 @@ def play_and_train(agent, env, batch_size=32, n_episode=1000, load_model=False,
 
 
 if __name__ == "__main__":
-    if not os.path.isdir("models"):
-        os.makedirs("models")
+    if not os.path.isdir("models/"):
+        os.makedirs("models/")
 
     env = gym.make("Humanoid-v2")
     state = env.reset()
@@ -68,19 +72,23 @@ if __name__ == "__main__":
     act_range = env.action_space.high[0]
 
     batch_size = 128
-    EPISODES = 2000
-    lr = 1e-1
+    EPISODES = 2000000
+    lr = 1e-3
     tau = 0.01
     gamma = 0.95
 
-    load_model = False
+    load_model = True
     if_debug = False
 
     agent = DDPG(act_dim=action_dim, state_dim=state_dim, model_path=f'models/', hidden_layers=[64, 64],
                  buffer_size=5000, act_range=act_range, lr=lr, tau=tau, gamma=gamma)
 
-    history = play_and_train(agent, env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model,
-                             if_gather_stats=False, if_render=True, if_debug=if_debug)
+    # history = play_and_train(agent, env, batch_size=batch_size, n_episode=EPISODES, load_model=load_model,
+    #                          if_gather_stats=False, if_render=False, if_debug=if_debug)
+
+    agent.load_weights(f'models/')
+    run_game(agent, env)
+
     env.close()
 
     # Export results to CSV

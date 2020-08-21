@@ -21,7 +21,6 @@ class Actor:
         state = keras.layers.Input(shape=self.state_dim)
         x = state
         # x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Dense(300, activation=keras.layers.LeakyReLU(0.2))(x)
         x = keras.layers.Dense(100, activation=keras.layers.LeakyReLU(0.2))(x)
         x = keras.layers.Dense(20, activation=keras.layers.LeakyReLU(0.2))(x)
 

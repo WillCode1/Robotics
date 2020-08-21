@@ -26,7 +26,6 @@ class Critic:
 
         x = keras.layers.concatenate([state, action])
         # x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Dense(300, activation=keras.layers.LeakyReLU(0.2))(x)
         x = keras.layers.Dense(100, activation=keras.layers.LeakyReLU(0.2))(x)
         x = keras.layers.Dense(20, activation=keras.layers.LeakyReLU(0.2))(x)
 
