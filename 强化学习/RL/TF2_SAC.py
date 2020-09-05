@@ -111,9 +111,6 @@ class SAC:
         self.tau = tau  # target model update
         self.batch_size = batch_size
 
-        # Tensorboard
-        self.summaries = {}
-
     def process_actions(self, mean, log_std, test=False, eps=1e-6):
         std = tf.math.exp(log_std)
         raw_actions = mean
@@ -143,12 +140,6 @@ class SAC:
             log_stds = tf.clip_by_value(log_stds, self.log_std_min, self.log_std_max)
 
             a, log_prob = self.process_actions(means, log_stds, test=test)
-
-        q1 = self.critic_1.predict([state, a])[0][0]
-        q2 = self.critic_2.predict([state, a])[0][0]
-        self.summaries['q_min'] = tf.math.minimum(q1, q2)
-        self.summaries['q_mean'] = np.mean([q1, q2])
-
         return a
 
     def save_model(self, a_fn, c_fn):
@@ -157,14 +148,12 @@ class SAC:
 
     def load_actor(self, a_fn):
         self.actor.load_weights(a_fn)
-        print(self.actor.summary())
 
     def load_critic(self, c_fn):
         self.critic_1.load_weights(c_fn)
         self.critic_target_1.load_weights(c_fn)
         self.critic_2.load_weights(c_fn)
         self.critic_target_2.load_weights(c_fn)
-        print(self.critic_1.summary())
 
     def remember(self, state, action, reward, next_state, done):
         state = np.expand_dims(state, axis=0)
@@ -221,24 +210,13 @@ class SAC:
         actor_grad = tape.gradient(actor_loss, self.actor.trainable_variables)  # compute actor gradient
         self.actor_optimizer.apply_gradients(zip(actor_grad, self.actor.trainable_variables))
 
-        # tensorboard info
-        self.summaries['q1_loss'] = critic_loss_1
-        self.summaries['q2_loss'] = critic_loss_2
-        self.summaries['actor_loss'] = actor_loss
-
         if self.auto_alpha:
             # optimize temperature
             alpha_grad = tape.gradient(alpha_loss, [self.log_alpha])
             self.alpha_optimizer.apply_gradients(zip(alpha_grad, [self.log_alpha]))
             self.alpha.assign(tf.exp(self.log_alpha))
-            # tensorboard info
-            self.summaries['alpha_loss'] = alpha_loss
 
     def train(self, max_epochs=8000, random_epochs=1000, max_steps=1000, save_freq=50):
-        current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        train_log_dir = 'logs/' + current_time
-        summary_writer = tf.summary.create_file_writer(train_log_dir)
-
         done, use_random, episode, steps, epoch, episode_reward = False, True, 0, 0, 0, 0
         cur_state = self.env.reset()
 
@@ -251,12 +229,6 @@ class SAC:
                 print("episode {}: {} total reward, {} alpha, {} steps, {} epochs".format(
                     episode, episode_reward, self.alpha.numpy(), steps, epoch))
 
-                with summary_writer.as_default():
-                    tf.summary.scalar('Main/episode_reward', episode_reward, step=episode)
-                    tf.summary.scalar('Main/episode_steps', steps, step=episode)
-
-                summary_writer.flush()
-
                 done, cur_state, steps, episode_reward = False, self.env.reset(), 0, 0
                 if episode % save_freq == 0:
                     self.save_model("sac_actor_episode{}.h5".format(episode),
@@ -265,11 +237,11 @@ class SAC:
             if epoch > random_epochs and len(self.memory) > self.batch_size:
                 use_random = False
 
-            action = self.act(cur_state, use_random=use_random)  # determine action
-            next_state, reward, done, _ = self.env.step(action[0])  # act on env
+            action = self.act(cur_state, use_random=use_random)
+            next_state, reward, done, _ = self.env.step(action[0])
             self.env.render(mode='rgb_array')
 
-            self.remember(cur_state, action, reward, next_state, done)  # add to memory
+            self.remember(cur_state, action, reward, next_state, done)
             self.replay()  # train models through memory replay
 
             update_target_weights(self.critic_1, self.critic_target_1, tau=self.tau)  # iterates target model
@@ -279,24 +251,6 @@ class SAC:
             episode_reward += reward
             steps += 1
             epoch += 1
-
-            # Tensorboard update
-            with summary_writer.as_default():
-                if len(self.memory) > self.batch_size:
-                    tf.summary.scalar('Loss/actor_loss', self.summaries['actor_loss'], step=epoch)
-                    tf.summary.scalar('Loss/q1_loss', self.summaries['q1_loss'], step=epoch)
-                    tf.summary.scalar('Loss/q2_loss', self.summaries['q2_loss'], step=epoch)
-                    if self.auto_alpha:
-                        tf.summary.scalar('Loss/alpha_loss', self.summaries['alpha_loss'], step=epoch)
-
-                tf.summary.scalar('Stats/alpha', self.alpha, step=epoch)
-                if self.auto_alpha:
-                    tf.summary.scalar('Stats/log_alpha', self.log_alpha, step=epoch)
-                tf.summary.scalar('Stats/q_min', self.summaries['q_min'], step=epoch)
-                tf.summary.scalar('Stats/q_mean', self.summaries['q_mean'], step=epoch)
-                tf.summary.scalar('Main/step_reward', reward, step=epoch)
-
-            summary_writer.flush()
 
         self.save_model("sac_actor_final_episode{}.h5".format(episode),
                         "sac_critic_final_episode{}.h5".format(episode))
@@ -321,6 +275,6 @@ if __name__ == "__main__":
 
     # sac.load_actor("sac_actor_episode480.h5")
     # sac.load_critic("sac_critic_episode480.h5")
-    sac.train(max_epochs=200000, random_epochs=10000, save_freq=50)
+    sac.train(max_epochs=200000, random_epochs=1000, save_freq=50)
     # reward = sac.test()
     # print(reward)
