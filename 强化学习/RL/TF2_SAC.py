@@ -8,9 +8,9 @@ import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Concatenate
 from tensorflow.keras.optimizers import Adam
-import tensorflow_probability as tfp
+# import tensorflow_probability as tfp
 
-tfd = tfp.distributions
+# tfd = tfp.distributions
 
 tf.keras.backend.set_floatx('float64')
 
@@ -80,7 +80,7 @@ class SAC:
         self.actor_optimizer = Adam(learning_rate=lr_actor)
         self.log_std_min = -20
         self.log_std_max = 2
-        print(self.actor.summary())
+        # print(self.actor.summary())
 
         # Define and initialize critic networks
         self.critic_1 = critic(self.state_shape, self.action_shape, critic_units)
@@ -93,7 +93,7 @@ class SAC:
         self.critic_optimizer_2 = Adam(learning_rate=lr_critic)
         update_target_weights(self.critic_2, self.critic_target_2, tau=1.)
 
-        print(self.critic_1.summary())
+        # print(self.critic_1.summary())
 
         # Define and initialize temperature alpha and target entropy
         self.auto_alpha = auto_alpha
@@ -121,7 +121,10 @@ class SAC:
         if not test:
             raw_actions += tf.random.normal(shape=mean.shape, dtype=tf.float64) * std
 
-        log_prob_u = tfd.Normal(loc=mean, scale=std).log_prob(raw_actions)
+        variance = std ** 2
+        pdf = 1. / tf.sqrt(2. * np.pi * variance) * tf.exp(-(raw_actions - mean) ** 2 / (2. * variance))
+        log_prob_u = tf.math.log(pdf + 1e-10)
+        # log_prob_u = tfd.Normal(loc=mean, scale=std).log_prob(raw_actions)
         actions = tf.math.tanh(raw_actions)
 
         log_prob = tf.reduce_sum(log_prob_u - tf.math.log(1 - actions ** 2 + eps))
@@ -313,7 +316,7 @@ class SAC:
 
 
 if __name__ == "__main__":
-    gym_env = gym.make("MountainCarContinuous-v0")
+    gym_env = gym.make("Pendulum-v0")
     sac = SAC(gym_env)
 
     # sac.load_actor("sac_actor_episode480.h5")
