@@ -281,7 +281,6 @@ def ppo(args):
 
         batch = memory.sample()
         batch_size = len(memory)
-        print(np.mean(reward_list))
 
         # step2: extract variables from trajectories
         rewards = Tensor(batch.reward)

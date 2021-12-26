@@ -301,8 +301,6 @@ def ppo(args):
             lr_now = args.lr * ep_ratio
             # set learning rate
             # ref: https://stackoverflow.com/questions/48324152/
-            for g in optimizer.param_groups:
-                g['lr'] = lr_now
 
         if i_episode % args.log_num_episode == 0:
             print('Finished episode: {} Reward: {:.4f} total_loss = {:.4f} = {:.4f} + {} * {:.4f} + {} * {:.4f}' \

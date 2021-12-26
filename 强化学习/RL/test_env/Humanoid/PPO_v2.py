@@ -22,17 +22,15 @@ class PPO2:
 
     def create_model(self):
         state_input = Input((self.state_dim,))
-        x = Dense(100, activation=keras.layers.LeakyReLU(0.2))(state_input)
+        x = Dense(32, activation=keras.layers.LeakyReLU(0.2))(state_input)
         state_feature = Dense(32, activation=keras.layers.LeakyReLU(0.2))(x)
 
         # critic
-        critic = Dense(32, activation=keras.layers.LeakyReLU(0.2))(state_feature)
-        critic = Dense(32, activation=keras.layers.LeakyReLU(0.2))(critic)
+        critic = Dense(16, activation=keras.layers.LeakyReLU(0.2))(state_feature)
         value = Dense(1)(critic)
 
         # actor
-        actor = Dense(32, activation=keras.layers.LeakyReLU(0.2))(state_feature)
-        actor = Dense(32, activation=keras.layers.LeakyReLU(0.2))(actor)
+        actor = Dense(16, activation=keras.layers.LeakyReLU(0.2))(state_feature)
         mu = Dense(self.action_dim, activation='tanh')(actor)
         mu = Lambda(lambda x: x * self.action_bound)(mu)
         std = Dense(self.action_dim, activation='softplus')(actor)
@@ -124,6 +122,7 @@ class Agent:
             gae[k] = gae_cumulative
             td_targets[k] = gae[k] + v_values[k]
             next_v_val = v_values[k]
+        gae = (gae - gae.mean()) / (gae.std() + 1e-10)
         return gae, td_targets
 
     def train(self, max_episodes=1000, if_render=False):
@@ -176,7 +175,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--batch_size', type=int, default=128)
-    parser.add_argument('--lr', type=float, default=3e-5)
+    parser.add_argument('--lr', type=float, default=2e-5)
     parser.add_argument('--clip_ratio', type=float, default=0.1)
     parser.add_argument('--entropy_ratio', type=float, default=0.01)
     parser.add_argument('--lmbda', type=float, default=0.95)
@@ -188,7 +187,7 @@ if __name__ == "__main__":
     if not os.path.isdir("models/PPO"):
         os.makedirs("models/PPO")
 
-    env_name = 'Humanoid-v2'
+    env_name = 'Hopper-v2'
     env = gym.make(env_name)
     agent = Agent(env, path='models/PPO/', load_weight=False)
-    agent.train(max_episodes=30000, if_render=False)
+    agent.train(max_episodes=3000000, if_render=False)
